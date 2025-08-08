@@ -1,0 +1,44 @@
+# Virtual environments
+venv/
+.venv/
+env/
+.env/
+
+# Python cache files
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Environment & dependency managers
+Pipfile
+Pipfile.lock
+poetry.lock
+
+# Data & model files (optional — keep local if large)
+*.h5
+*.pkl
+*.joblib
+*.pt
+*.pth
+*.onnx
+*.ckpt
+
+# Logs & debug
+*.log
+*.out
+*.err
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# IDE/project configs
+.vscode/
+.idea/
+
+# Large datasets
+data/
+datasets/
