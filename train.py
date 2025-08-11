@@ -26,5 +26,5 @@ print("Accuracy:", accuracy_score(y_test, y_pred))
 print(classification_report(y_test, y_pred))
 
 # 7. Save model
-joblib.dump(model, "disease_model.pkl")
+joblib.dump(model, "data/disease_model.pkl")
 print("Model saved as disease_model.pkl")

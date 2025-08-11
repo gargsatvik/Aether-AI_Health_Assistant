@@ -1,39 +1,43 @@
 import pandas as pd
 
-data=pd.read_csv("data/dataset.csv")
-description=pd.read_csv("data/symptom_Description.csv")
-precaution=pd.read_csv("data/symptom_Precaution.csv")
-weight=pd.read_csv("data/Symptom-severity.csv")
+# Load datasets
+df = pd.read_csv(r"data\dataset.csv")
+weights_df = pd.read_csv(r"data\Symptom-severity.csv")
 
-def clean_symptom_name(symptom):
-    return symptom.strip().lower().replace('_', ' ')
+# Normalize symptom names in weights CSV
+weights_df["Symptom"] = (
+    weights_df["Symptom"].str.strip().str.lower().str.replace("_", " ")
+)
+weights_dict = dict(zip(weights_df["Symptom"], weights_df["weight"]))
 
-precaution['Disease'] = data['Disease'].apply(clean_symptom_name)
-data['Disease'] = data['Disease'].apply(clean_symptom_name)
-description['Disease'] = description['Disease'].apply(clean_symptom_name)
-description['Description'] = description['Description'].apply(clean_symptom_name)
+# Identify symptom columns in dataset
+symptom_cols = [col for col in df.columns if col.startswith("Symptom")]
 
-df_long = data.melt(id_vars=["Disease"],
-    value_vars=[col for col in data.columns if col.startswith("Symptom_")],
-    var_name="Symptom_Number",
-    value_name="Symptom"
-    )
+# Get all unique symptoms from dataset (normalized)
+all_symptoms = sorted(
+    pd.Series(df[symptom_cols].values.ravel())
+    .dropna()
+    .str.strip()
+    .str.lower()
+    .str.replace("_", " ")
+    .unique()
+)
 
-df_long = df_long.dropna(subset=["Symptom"])
-df_long["Symptom"] = df_long["Symptom"].str.strip()
+# Create binary matrix for normalized symptoms
+binary_matrix = pd.DataFrame(
+    [[1 if symptom in row.str.strip().str.lower().str.replace("_", " ").values else 0
+      for symptom in all_symptoms]
+     for _, row in df[symptom_cols].iterrows()],
+    columns=all_symptoms
+)
 
+# Apply weights using normalized names
+weighted_matrix = binary_matrix.apply(
+    lambda col: col * weights_dict.get(col.name, 0)
+)
 
-df_merged = df_long.merge(weight, on="Symptom", how="left")
+# Final dataframe
+final_df = pd.concat([df[["Disease"]], weighted_matrix], axis=1)
+final_df.to_csv(r"data\merged.csv", index=False)
 
-#df_merged = df_merged.merge(description, on="Symptom", how="left")
-
-df_wide = df_merged.pivot_table(
-    index="Disease",
-    columns="Symptom",
-    values="weight",
-    fill_value=0
-).reset_index()
-
-df_wide.to_csv("data/merged_dataset.csv", index=False)
-
-print(df_wide.head(10))
+print(final_df.head())
