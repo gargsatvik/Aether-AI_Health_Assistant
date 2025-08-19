@@ -1,30 +1,34 @@
 import pandas as pd
-from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import MultiLabelBinarizer
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report, accuracy_score
 import joblib
 
-# 1. Load your merged dataset
-df = pd.read_csv("data/merged.csv")
+# Load synthetic patient dataset
+df = pd.read_csv("data/synthetic_patient_data.csv")
 
-# 3. Separate features and target
-X = df.drop(columns=["prognosis"])
-y = df["prognosis"]
+# Convert symptoms string → list
+df["Symptoms"] = df["Symptoms"].apply(lambda x: [s.strip() for s in x.split(",")])
 
-# 4. Train/test split WITHOUT stratify
-X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.2, random_state=42
-)
+# Encode symptoms
+mlb = MultiLabelBinarizer()
+X = mlb.fit_transform(df["Symptoms"])
+y = df["Disease"]
 
-# 5. Train model
-model = RandomForestClassifier(random_state=42)
+# Split train/test
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Train model
+model = RandomForestClassifier(n_estimators=200, random_state=42)
 model.fit(X_train, y_train)
 
-# 6. Evaluate
+# Evaluate
 y_pred = model.predict(X_test)
-print("Accuracy:", accuracy_score(y_test, y_pred))
+print("✅ Accuracy:", accuracy_score(y_test, y_pred))
 print(classification_report(y_test, y_pred))
 
-# 7. Save model
+# Save model + encoder
 joblib.dump(model, "data/disease_model.pkl")
-print("Model saved as disease_model.pkl")
+joblib.dump(mlb, "data/symptom_encoder.pkl")
+print("💾 Model & encoder saved in /data/")
