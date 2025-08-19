@@ -24,16 +24,16 @@ model = RandomForestClassifier(n_estimators=200, random_state=42)
 model.fit(X, y)
 
 # Save model + symptom encoder
-joblib.dump(model, "disease_model.pkl")
-joblib.dump(mlb, "symptom_encoder.pkl")
+joblib.dump(model, "models/disease_model.pkl")
+joblib.dump(mlb, "models/symptom_encoder.pkl")
 
 # ------------------
 # PREDICTION
 # ------------------
 
 # Load model & encoder
-model = joblib.load("disease_model.pkl")
-mlb = joblib.load("symptom_encoder.pkl")
+model = joblib.load("models/disease_model.pkl")
+mlb = joblib.load("models/symptom_encoder.pkl")
 
 all_symptoms = mlb.classes_
 
