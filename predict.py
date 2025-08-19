@@ -1,95 +1,113 @@
 import pandas as pd
 import joblib
-import re
-from difflib import get_close_matches
+import spacy
 from nltk.corpus import wordnet
-from nltk.stem import WordNetLemmatizer
-import nltk
+from sklearn.metrics.pairwise import cosine_similarity
+from difflib import get_close_matches
 
-# 🔹 Make sure NLTK resources are downloaded
-nltk.download('wordnet')
-nltk.download('omw-1.4')
+# ------------------
+# LOAD MODEL & ENCODER
+# ------------------
+model = joblib.load("data/disease_model.pkl")
+mlb = joblib.load("data/symptom_encoder.pkl")
+all_symptoms = mlb.classes_
 
-# ------------------ Load Model & Dataset ------------------
-print("🔄 Loading model & embedder...")
-model = joblib.load("data/disease_model_embeddings.pkl")
-embedder = joblib.load("data/embedder.pkl")
+# Load spaCy model
+nlp = spacy.load("en_core_web_md")
 
-# Load symptoms from your dataset
-df = pd.read_csv("data/dataset.csv")  # Or wherever your master dataset is
-all_symptoms = set()
-for col in df.columns[1:]:  # skip Disease column
-    all_symptoms.update(df[col].dropna().astype(str).str.strip().str.lower())
-all_symptoms = list(all_symptoms)
-print(f"✅ Loaded {len(all_symptoms)} symptoms from dataset")
+# Precompute embeddings for all known symptoms
+symptom_embeddings = {s: nlp(s.replace("_", " ")).vector for s in all_symptoms}
 
-# ------------------ NLTK Setup ------------------
-lemmatizer = WordNetLemmatizer()
-
+# ------------------
+# SYNONYM LOOKUP (WordNet)
+# ------------------
 def get_synonyms(word):
-    syns = set()
+    synonyms = set()
     for syn in wordnet.synsets(word):
         for lemma in syn.lemmas():
-            syns.add(lemma.name().lower().replace("_", " "))
-    return syns
+            synonyms.add(lemma.name().replace("_", " "))
+    return synonyms
 
-# Precompute synonym mapping for all symptoms
-synonym_map = {}
-for symptom in all_symptoms:
-    synonym_map[symptom] = get_synonyms(symptom)
-    synonym_map[symptom].add(symptom)  # ensure original symptom included
+# ------------------
+# MATCH USER TEXT TO KNOWN SYMPTOM
+# ------------------
+def best_match_symptom(user_text, threshold=0.65):
+    user_text = user_text.lower().strip()
+    doc = nlp(user_text)
 
-# ------------------ Symptom Extraction ------------------
-def normalize_word(word):
-    return lemmatizer.lemmatize(word.lower())
+    # 1. Exact match
+    if user_text in all_symptoms:
+        return user_text
 
-def extract_symptoms_from_text(text):
-    text = text.lower()
-    recognized = set()
+    # 2. Fuzzy string match
+    fuzzy = get_close_matches(user_text, all_symptoms, n=1, cutoff=0.8)
+    if fuzzy:
+        return fuzzy[0]
 
-    # Check for multi-word symptoms first
-    for symptom, syns in synonym_map.items():
-        for s in syns:
-            if s in text:
-                recognized.add(symptom)
-                text = text.replace(s, "")  # remove matched part
+    # 3. Synonym check (WordNet)
+    for symptom in all_symptoms:
+        for syn in get_synonyms(symptom.replace("_", " ")):
+            if user_text == syn.lower():
+                return symptom
 
-    # Tokenize remaining text
-    words = set(re.findall(r'\w+', text))
-    words = [normalize_word(w) for w in words]
+    # 4. Semantic similarity (spaCy embeddings)
+    vec = doc.vector
+    best, score = None, 0
+    for symptom, svec in symptom_embeddings.items():
+        sim = cosine_similarity([vec], [svec])[0][0]
+        if sim > score:
+            best, score = symptom, sim
+    if score >= threshold:
+        return best
 
-    # Fuzzy match remaining words
-    for word in words:
-        match = get_close_matches(word, all_symptoms, n=1, cutoff=0.85)
+    return None
+
+# ------------------
+# PREDICTION FUNCTION
+# ------------------
+def predict_disease(user_sentence, top_n=3):
+    doc = nlp(user_sentence)
+    candidate_symptoms = set()
+
+    # Try noun chunks first (multi-word symptoms)
+    for chunk in doc.noun_chunks:
+        match = best_match_symptom(chunk.text)
         if match:
-            recognized.add(match[0])
+            candidate_symptoms.add(match)
 
-    return list(recognized)
+    # Then individual tokens
+    for token in doc:
+        if not token.is_stop and token.is_alpha:
+            match = best_match_symptom(token.text)
+            if match:
+                candidate_symptoms.add(match)
 
-# ------------------ Prediction ------------------
-def predict_disease(symptom_sentence, top_n=3):
-    recognized = extract_symptoms_from_text(symptom_sentence)
-    if not recognized:
-        return recognized, [("No recognizable symptoms found", 0)]
+    if not candidate_symptoms:
+        return list(candidate_symptoms), [("No matching symptoms found", 0)]
 
-    # Convert sentence → embedding
-    embedding = embedder.encode([symptom_sentence], convert_to_numpy=True)
-
-    # Predict probabilities
-    probs = model.predict_proba(embedding)[0]
-    classes = model.classes_
-
-    # Sort top N predictions
+    # Encode for model
+    X_user = mlb.transform([list(candidate_symptoms)])
+    probs = model.predict_proba(X_user)[0]
     top_indices = probs.argsort()[-top_n:][::-1]
-    results = [(classes[i], round(probs[i], 3)) for i in top_indices]
-    return recognized, results
+    results = [(model.classes_[i], round(probs[i] * 100, 2)) for i in top_indices]
 
-# ------------------ Interactive Run ------------------
-print("\n💬 Describe your symptoms (or type 'q' to quit)")
-while True:
-    text = input("> ")
-    if text.lower() == "q":
-        break
-    recognized, preds = predict_disease(text)
-    print("🔍 Recognized Symptoms:", recognized)
-    print("Predictions:", preds)
+    return list(candidate_symptoms), results
+
+# ------------------
+# INTERACTIVE LOOP
+# ------------------
+if __name__ == "__main__":
+    print("🔄 Loading disease model and embeddings...")
+    print(f"✅ Loaded {len(all_symptoms)} canonical symptoms.\n")
+
+    while True:
+        user_input = input("💬 Describe your symptoms (or type 'quit'): ")
+        if user_input.lower() in ["quit", "q"]:
+            break
+
+        recognized_symptoms, predictions = predict_disease(user_input)
+        print("🔍 Recognized Symptoms:", recognized_symptoms)
+        print("Predictions:")
+        for disease, prob in predictions:
+            print(f"- {disease} ({prob}%)")
+        print("\n" + "-"*40)
