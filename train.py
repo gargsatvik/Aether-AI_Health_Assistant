@@ -1,54 +1,62 @@
+import numpy as np
 import pandas as pd
-from sentence_transformers import SentenceTransformer
 from sklearn.model_selection import train_test_split
-from sklearn.linear_model import LogisticRegression
+from xgboost import XGBClassifier
 from sklearn.metrics import classification_report
-import joblib
 
-# ============================
-# 1. Load Preprocessed Dataset
-# ============================
-df = pd.read_csv("data/merged_sentences.csv")
+def main():
+    print("📂 Loading precomputed embeddings...")
+    X = np.load("symptom_embeddings.npy")      # shape (N, 384)
+    sentences = np.load("sentences.npy", allow_pickle=True)
+    
+    print("📂 Loading synthetic patient data...")
+    df = pd.read_csv("synthetic_patients.csv")  # contains Disease + symptoms_sentence
+    y = df["Disease"].values
 
-# Ensure no NaN in symptoms_sentence
-df["symptoms_sentence"] = df["symptoms_sentence"].fillna("").astype(str)
+    print(f"✅ After mapping: {X.shape}, {y.shape}")
+    print(f"🔎 Example labels: {np.unique(y)[:10]}")
 
-print("✅ Loaded dataset with shape:", df.shape)
-print(df.head())
+    # -------------------------
+    # 🛠 Drop rare classes (<2 samples)
+    # -------------------------
+    unique, counts = np.unique(y, return_counts=True)
+    freq = dict(zip(unique, counts))
 
-# ============================
-# 2. Encode Symptoms Sentences
-# ============================
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-embedder = SentenceTransformer(model_name)
+    mask = np.array([freq[label] > 1 for label in y])
+    X, y = X[mask], y[mask]
 
-print("⚡ Encoding symptoms into embeddings...")
-X = embedder.encode(df["symptoms_sentence"].tolist(), convert_to_numpy=True, show_progress_bar=True)
+    print(f"✅ After dropping rare classes: {X.shape}, {len(np.unique(y))} classes remain")
 
-y = df["Disease"].astype(str)  # Ensure labels are strings
+    # -------------------------
+    # Split with stratify
+    # -------------------------
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=42, stratify=y
+    )
 
-# ============================
-# 3. Train/Test Split
-# ============================
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
+    print(f"✅ Train: {X_train.shape}, Test: {X_test.shape}")
 
-# ============================
-# 4. Train Classifier
-# ============================
-clf = LogisticRegression(max_iter=5000, verbose=1)
-clf.fit(X_train, y_train)
+    # -------------------------
+    # Train XGBoost
+    # -------------------------
+    clf = XGBClassifier(
+        n_estimators=500,
+        max_depth=10,
+        learning_rate=0.1,
+        tree_method="hist",  # MUCH faster for large datasets
+        n_jobs=-1,
+        verbosity=1
+    )
 
-# ============================
-# 5. Evaluate
-# ============================
-y_pred = clf.predict(X_test)
-print("\n📊 Classification Report:\n")
-print(classification_report(y_test, y_pred))
+    print("🚀 Training XGBoost...")
+    clf.fit(X_train, y_train)
 
-# ============================
-# 6. Save Model + Encoder
-# ============================
-joblib.dump(clf, "models/disease_classifier.pkl")
-embedder.save("models/symptom_embedder")
+    # -------------------------
+    # Evaluate
+    # -------------------------
+    y_pred = clf.predict(X_test)
+    print("📊 Classification Report:")
+    print(classification_report(y_test, y_pred, zero_division=0))
 
-print("\n✅ Training complete! Model and embedder saved in /models/")
+if __name__ == "__main__":
+    main()

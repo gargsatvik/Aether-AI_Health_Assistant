@@ -2,7 +2,7 @@ import pandas as pd
 import random
 
 # Load master dataset (Disease + Symptoms)
-df = pd.read_csv("data/dataset.csv")
+df = pd.read_csv("data/merged.csv")
 
 # Collect all unique symptoms
 all_symptoms = set(df.iloc[:, 1:].stack().dropna().unique())
