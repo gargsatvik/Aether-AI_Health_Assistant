@@ -8,10 +8,10 @@ import joblib
 # ============================
 # 1. Load Preprocessed Dataset
 # ============================
-df = pd.read_csv("data/merged_sentences.csv")
+df = pd.read_csv("data/synthetic_patient_data.csv")
 
-# Ensure no NaN in symptoms_sentence
-df["symptoms_sentence"] = df["symptoms_sentence"].fillna("").astype(str)
+# Ensure no NaN in Symptoms
+df["Symptoms"] = df["Symptoms"].fillna("").astype(str)
 
 print("✅ Loaded dataset with shape:", df.shape)
 print(df.head())
@@ -23,7 +23,7 @@ model_name = "sentence-transformers/all-MiniLM-L6-v2"
 embedder = SentenceTransformer(model_name)
 
 print("⚡ Encoding symptoms into embeddings...")
-X = embedder.encode(df["symptoms_sentence"].tolist(), convert_to_numpy=True, show_progress_bar=True)
+X = embedder.encode(df["Symptoms"].tolist(), convert_to_numpy=True, show_progress_bar=True)
 
 y = df["Disease"].astype(str)  # Ensure labels are strings
 
