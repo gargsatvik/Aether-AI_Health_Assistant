@@ -1,166 +1,108 @@
-# predict.py (Updated with Gemini Integration)
-import os
-import sys
+# definitive_train.py
+import pandas as pd
+from sentence_transformers import SentenceTransformer
+from sklearn.model_selection import train_test_split
+from xgboost import XGBClassifier
+from sklearn.metrics import classification_report, accuracy_score
+from sklearn.preprocessing import LabelEncoder
 import joblib
 import numpy as np
-import google.generativeai as genai
+from collections import Counter
 
-# --- Local Model Imports (your existing imports) ---
+# ============================
+# 1. Load and Preprocess Raw Dataset
+# ============================
+print("📂 Loading raw dataset 'data/merged.csv'...")
 try:
-    from sentence_transformers import SentenceTransformer
-    import xgboost as xgb
-except ImportError:
-    print("ERROR: Make sure sentence-transformers and xgboost are installed.")
-    sys.exit(1)
+    df = pd.read_csv("data/merged.csv")
+except FileNotFoundError:
+    print("❌ ERROR: 'data/merged.csv' not found. Please ensure the file is in the correct directory.")
+    exit()
 
-# -------------------------
-# --- Configuration ---
-# -------------------------
-# 1. CONFIGURE GEMINI API
-# Load API key from environment variable
-try:
-    GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY")
-    if not GOOGLE_API_KEY:
-        # This will now clearly tell you if the variable wasn't found
-        print("❌ ERROR: The GOOGLE_API_KEY environment variable was not found.")
-        raise ValueError("GOOGLE_API_KEY environment variable not set.")
+# Identify symptom columns (all columns except the first 'Disease' column)
+symptom_columns = df.columns[1:]
 
-    # This print statement helps you verify the key is being loaded
-    print(f"🔑 Found API Key. Starts with: '{GOOGLE_API_KEY[:4]}...', ends with: '...{GOOGLE_API_KEY[-4:]}'")
+def combine_symptoms(row):
+    """Combines all symptom columns into a single, clean sentence."""
+    # Cleans up symptoms: converts to string, strips whitespace, replaces underscores
+    symptoms = [str(s).strip().replace('_', ' ') for s in row if pd.notna(s) and str(s).strip()]
+    return ', '.join(symptoms)
 
-    genai.configure(api_key=GOOGLE_API_KEY)
-except Exception as e:
-    print(f"❌ Gemini API Error: {e}")
-    print("Please make sure you have set your GOOGLE_API_KEY environment variable.")
-    sys.exit(1)
+print("🔄 Preprocessing data: combining symptoms into sentences...")
+df['Symptoms'] = df[symptom_columns].apply(combine_symptoms, axis=1)
 
-# 2. LOCAL MODEL PATHS
-CANDIDATE_SKLEARN_MODEL = "models/disease_classifier.pkl"
-CANDIDATE_LE = "models/symptom_encoder.pkl"
-CANDIDATE_EMBEDDER_DIR = "models/symptom_embedder"
-TOP_K = 3 # We'll show top 3 from the local model
+# Create a clean DataFrame for training
+df_processed = df[['Disease', 'Symptoms']].copy()
+df_processed.dropna(subset=['Disease', 'Symptoms'], inplace=True)
+df_processed = df_processed[df_processed['Symptoms'] != ''] # Remove rows with no symptoms
 
-# -------------------------
-# --- Local Model Loading and Functions ---
-# -------------------------
-def load_local_models():
-    """Loads the XGBoost model, label encoder, and sentence embedder."""
-    try:
-        model = joblib.load(CANDIDATE_SKLEARN_MODEL)
-        label_encoder = joblib.load(CANDIDATE_LE)
-        embedder = SentenceTransformer(CANDIDATE_EMBEDDER_DIR)
-        print("✅ Local XGBoost models loaded successfully.")
-        return model, label_encoder, embedder
-    except Exception as e:
-        print(f"⚠️ Could not load local models: {e}")
-        return None, None, None
+print(f"✅ Preprocessing complete. Using {len(df_processed)} valid data rows.")
 
-def predict_with_local_model(text, model, le, embedder):
-    """Generates a prediction using the local XGBoost model."""
-    if not all([model, le, embedder]):
-        return []
-    try:
-        embedding = embedder.encode([text], convert_to_numpy=True)
-        proba = model.predict_proba(embedding)[0]
-        top_indices = np.argsort(proba)[-TOP_K:][::-1]
-        predictions = [(le.classes_[i], proba[i]) for i in top_indices]
-        return predictions
-    except Exception as e:
-        print(f"Error during local prediction: {e}")
-        return []
+# ============================
+# 2. Handle Class Imbalance (Crucial for Accuracy)
+# ============================
+# Some diseases may have very few samples. We'll remove classes with fewer than 5 samples.
+MIN_SAMPLES_PER_CLASS = 5
+class_counts = df_processed['Disease'].value_counts()
+diseases_to_keep = class_counts[class_counts >= MIN_SAMPLES_PER_CLASS].index
+df_final = df_processed[df_processed['Disease'].isin(diseases_to_keep)]
 
-# -------------------------
-# --- Gemini Functions ---
-# -------------------------
-def initialize_gemini_chat():
-    """Initializes and returns a Gemini chat session with system instructions."""
-    # Define safety settings for medical content
-    safety_settings = {
-        "HARM_CATEGORY_HARASSMENT": "BLOCK_NONE",
-        "HARM_CATEGORY_HATE_SPEECH": "BLOCK_NONE",
-        "HARM_CATEGORY_SEXUALLY_EXPLICIT": "BLOCK_NONE",
-        "HARM_CATEGORY_DANGEROUS_CONTENT": "BLOCK_NONE",
-    }
-    
-    model = genai.GenerativeModel('gemini-1.5-flash')
-    
-    # System instruction to guide the model's behavior
-    system_instruction = (
-        "You are an expert medical diagnostic assistant. Your role is to help a user identify potential diseases based on symptoms. "
-        "1. First, provide a differential diagnosis based on the user's initial symptoms. "
-        "2. Then, generate concise, targeted follow-up questions to differentiate between the top possibilities. "
-        "3. When the user answers, provide an updated, refined diagnosis. "
-        "4. Always present possibilities as a ranked list. "
-        "5. Conclude every response with a clear disclaimer: 'This is not a medical diagnosis. Consult a healthcare professional for advice.'"
-    )
-    
-    chat = model.start_chat(history=[
-        {'role': 'user', 'parts': [system_instruction]},
-        {'role': 'model', 'parts': ["Understood. I am ready to assist with medical diagnostics. Please provide the patient's symptoms."]}
-    ])
-    return chat
+print(f"✅ Filtered rare diseases. Training with {len(df_final)} samples across {len(diseases_to_keep)} diseases.")
 
-# -------------------------
-# --- Main Interactive Loop ---
-# -------------------------
-def interactive_loop():
-    print("\n🩺 Dual-Diagnosis Medical Assistant (XGBoost + Gemini)")
-    print("="*55)
-    
-    # Load local models first
-    xgb_model, le, embedder = load_local_models()
-    
-    # Initialize Gemini
-    try:
-        gemini_chat = initialize_gemini_chat()
-    except Exception as e:
-        print(f"❌ Failed to initialize Gemini: {e}")
-        return
+# ============================
+# 3. Encode Symptoms Sentences
+# ============================
+model_name = "sentence-transformers/all-MiniLM-L6-v2"
+embedder = SentenceTransformer(model_name)
 
-    # Get initial symptoms
-    initial_symptoms = input("💬 Please describe the patient's symptoms: ").strip()
-    if not initial_symptoms:
-        print("No symptoms provided. Exiting.")
-        return
+print("⚡ Encoding symptoms into embeddings... (This is the main processing step)")
+X = embedder.encode(df_final["Symptoms"].tolist(), convert_to_numpy=True, show_progress_bar=True)
 
-    # --- 1. Get Initial Predictions ---
-    print("\n" + "-"*20 + " Initial Analysis " + "-"*20)
-    
-    # Local XGBoost Prediction
-    local_preds = predict_with_local_model(initial_symptoms, xgb_model, le, embedder)
-    if local_preds:
-        print("\n⚡ **Local Model Prediction (XGBoost):**")
-        for disease, conf in local_preds:
-            print(f"  - {disease} ({conf:.2%})")
-            
-    # Gemini Prediction
-    print("\n🧠 **AI Assistant's Initial Thoughts (Gemini):**")
-    try:
-        response = gemini_chat.send_message(f"Initial symptoms: {initial_symptoms}")
-        print(response.text)
-    except Exception as e:
-        print(f"❌ Gemini API request failed: {e}")
-        return
+# Use LabelEncoder for integer labels required by XGBoost
+le = LabelEncoder()
+y = le.fit_transform(df_final["Disease"].astype(str))
 
-    # --- 2. Iterative Q&A Loop ---
-    print("\n" + "-"*15 + " Follow-up Investigation " + "-"*15)
-    while True:
-        user_answer = input("\n💬 Your answer (or type 'quit' to exit): ").strip()
-        
-        if user_answer.lower() in ['q', 'quit', 'exit']:
-            print("\n✅ Session ended. Stay healthy!")
-            break
-            
-        if not user_answer:
-            continue
-            
-        print("\n🧠 **AI Assistant's Refined Diagnosis (Gemini):**")
-        try:
-            response = gemini_chat.send_message(user_answer)
-            print(response.text)
-        except Exception as e:
-            print(f"❌ Gemini API request failed: {e}")
-            continue
+# ============================
+# 4. Train/Test Split
+# ============================
+print("🔪 Splitting data for training and testing...")
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
 
-if __name__ == "__main__":
-    interactive_loop()
+# ============================
+# 5. Train XGBoost Classifier
+# ============================
+print("🚀 Training XGBoost model...")
+clf = XGBClassifier(
+    n_estimators=300,          # Increased estimators for better performance
+    max_depth=7,               # Slightly deeper trees
+    learning_rate=0.05,        # A smaller learning rate often improves accuracy
+    objective='multi:softprob',
+    n_jobs=-1,
+    use_label_encoder=False,
+    eval_metric='mlogloss'
+)
+
+clf.fit(X_train, y_train)
+
+# ============================
+# 6. Evaluate
+# ============================
+print("\n📊 Evaluating model performance...")
+y_pred = clf.predict(X_test)
+accuracy = accuracy_score(y_test, y_pred)
+print(f"\n🎯 Model Accuracy: {accuracy:.2%}")
+
+y_test_labels = le.inverse_transform(y_test)
+y_pred_labels = le.inverse_transform(y_pred)
+print("\nClassification Report:\n")
+print(classification_report(y_test_labels, y_pred_labels, zero_division=0))
+
+# ============================
+# 7. Save Models
+# ============================
+# Overwrite the old models with our new, improved ones
+joblib.dump(clf, "models/disease_classifier_latest.pkl")
+embedder.save("models/symptom_embedder_latest")
+joblib.dump(le, "models/label_encoder_latest.joblib")
+
+print("\n✅ Training complete! New, more accurate XGBoost model saved in /models/")
