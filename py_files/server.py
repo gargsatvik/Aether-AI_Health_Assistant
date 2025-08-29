@@ -6,121 +6,99 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from sentence_transformers import SentenceTransformer
 import google.generativeai as genai
+from dotenv import load_dotenv # <-- Import the library
+
+# --- Configuration ---
+load_dotenv() # <-- Load variables from .env file
 
 try:
-    GOOGLE_API_KEY = "AIzaSyCtHrqkezyDKxg5l3MiU4CpnrMeVd2XOfk"
-    if not GOOGLE_API_KEY:
-        print("❌ ERROR: The GOOGLE_API_KEY environment variable was not found.")
-        raise ValueError("GOOGLE_API_KEY environment variable not set.")
-
-    print(f"🔑 Found API Key. Starts with: '{GOOGLE_API_KEY[:4]}...', ends with: '...{GOOGLE_API_KEY[-4:]}'")
-
-    genai.configure(api_key=GOOGLE_API_KEY)
+    # This will now read the key loaded from the .env file
+    genai.configure(api_key=os.environ.get("GOOGLE_API_KEY"))
 except AttributeError:
-    print("\nERROR: Gemini API Key not found.")
-    print("Please set the GEMINI_API_KEY environment variable.\n")
+    print("\nERROR: Gemini API Key not found in .env file or environment.")
     exit()
 
+# --- Initialize Flask App ---
 app = Flask(__name__)
-CORS(app)
+CORS(app) 
+
+# --- Global Variables to hold models ---
 local_model = None
 embedder = None
-gemini_chat_sessions = {}
+label_encoder = None
+
+# --- Helper Functions ---
 def load_models():
-    """Load the ML model and embedder from disk into memory."""
-    global local_model, embedder
+    """Load the ML model, embedder, and label encoder from disk."""
+    global local_model, embedder, label_encoder
     try:
-        model_path = "models/disease_classifier.pkl"
-        embedder_path = "models/symptom_embedder"
-        
-        if os.path.exists(model_path):
-            local_model = joblib.load(model_path)
-            print("✅ Classifier loaded successfully.")
-        else:
-            print(f"⚠️ Model not found at {model_path}")
-
-        if os.path.exists(embedder_path):
-            embedder = SentenceTransformer(embedder_path)
-            print("✅ Sentence embedder loaded successfully.")
-        else:
-            print(f"⚠️ Embedder not found at {embedder_path}")
-
+        local_model = joblib.load("models/disease_classifier.pkl")
+        embedder = SentenceTransformer("models/symptom_embedder")
+        label_encoder = joblib.load("models/label_encoder_huge.joblib")
+        print("✅ All models loaded successfully.")
     except Exception as e:
         print(f"❌ Error loading models: {e}")
 
-def get_gemini_chat(session_id):
-    """Initializes or retrieves a Gemini chat session."""
-    if session_id not in gemini_chat_sessions:
-        model = genai.GenerativeModel('gemini-1.5-flash')
-        system_instruction = (
-            "You are an expert medical diagnostic assistant. Your role is to help a user identify potential diseases based on symptoms. "
-            "IMPORTANT: The user will provide their location (e.g., city, country). You MUST use this information to inform your diagnosis, "
-            "as the prevalence of certain diseases (like malaria, dengue, etc.) is highly dependent on geography. "
-            "1. First, provide a differential diagnosis based on the user's initial symptoms and location. "
-            "2. Then, generate concise, targeted follow-up questions to differentiate between the top possibilities. "
-            "3. When the user answers, provide an updated, refined diagnosis. "
-            "4. Always present possibilities as a ranked list. "
-            "5. Format your responses using simple Markdown. Use bolding for disease names and bullet points for lists. "
-            "6. Conclude every response with a clear disclaimer: '*This is not a medical diagnosis. Consult a healthcare professional for advice.*'"
-        )
-        gemini_chat_sessions[session_id] = model.start_chat(history=[
-            {'role': 'user', 'parts': [system_instruction]},
-            {'role': 'model', 'parts': ["Understood. I will use the patient's location to improve diagnostic accuracy. Please provide the symptoms and location."]}
-        ])
-    return gemini_chat_sessions[session_id]
-
-@app.route('/chat', methods=['POST'])
-def chat():
-    """Endpoint for the conversational Gemini AI."""
-    data = request.get_json()
-    message = data.get('message', '')
-    session_id = data.get('session_id', 'default_session')
-    location = data.get('location', 'an unknown location')
-    
-    if not message:
-        return jsonify({"error": "Message not provided"}), 400
-        
-    try:
-        chat_session = get_gemini_chat(session_id)
-        
-        contextual_message = f"Patient's Location: {location}\n\nSymptoms: {message}"
-        
-        is_first_message = len(chat_session.history) <= 2
-        
-        if is_first_message:
-            response = chat_session.send_message(contextual_message)
-        else:
-            response = chat_session.send_message(message)
-
-        return jsonify({"reply": response.text})
-    except Exception as e:
-        print(f"❌ An error occurred while calling the Gemini API: {e}") 
-        return jsonify({"error": f"Gemini API request failed: {str(e)}"}), 500
-
-
+# --- API Endpoints ---
 @app.route('/predict', methods=['POST'])
 def predict():
-    """Endpoint for the local ML model prediction."""
-    if not local_model or not embedder:
+    """Endpoint for the local ML model prediction with enhanced logging."""
+    print("\n--- Received request for local model prediction ---")
+    if not all([local_model, embedder, label_encoder]):
+        print("❌ PREDICT ERROR: One or more models are not loaded.")
         return jsonify({"error": "Models not loaded"}), 500
         
     data = request.get_json()
     symptoms = data.get('symptoms', '')
     if not symptoms:
+        print("❌ PREDICT ERROR: No symptoms provided in the request.")
         return jsonify({"error": "Symptoms not provided"}), 400
 
+    print(f"🔍 Symptoms received: '{symptoms}'")
+    
     try:
+        print("1. Encoding symptoms into embedding...")
         embedding = embedder.encode([symptoms], convert_to_numpy=True)
+        print(f"   - Embedding created with shape: {embedding.shape}")
+
+        print("2. Getting probability predictions from the model...")
         proba = local_model.predict_proba(embedding)[0]
-        classes = local_model.classes_
+        print(f"   - Probabilities received. Shape: {proba.shape}")
         
-        top_indices = np.argsort(proba)[-3:][::-1] # Top 3
-        predictions = [{"disease": classes[i], "confidence": float(proba[i])} for i in top_indices]
+        print("3. Identifying top 3 predictions...")
+        top_indices = np.argsort(proba)[-3:][::-1]
+        
+        predictions = [{"disease": label_encoder.classes_[i], "confidence": float(proba[i])} for i in top_indices]
+        print(f"✅ Top 3 predictions generated: {predictions}")
         
         return jsonify(predictions)
     except Exception as e:
+        print(f"❌ PREDICT ERROR: An exception occurred during prediction: {e}")
         return jsonify({"error": str(e)}), 500
 
+@app.route('/chat', methods=['POST'])
+def chat():
+    """Endpoint for the conversational Gemini AI. Now stateless."""
+    data = request.get_json()
+    history = data.get('history', [])
+    
+    if not history:
+        return jsonify({"error": "Chat history not provided"}), 400
+    
+    try:
+        model = genai.GenerativeModel('gemini-1.5-flash')
+        
+        # This is the correct way to handle a stateless, multi-turn chat
+        # by sending the entire history to the model at once.
+        response = model.generate_content(history)
+        
+        return jsonify({"reply": response.text})
+    except Exception as e:
+        # This improved logging will show the specific error from the API
+        print(f"❌ An error occurred while calling the Gemini API: {e}") 
+        return jsonify({"error": f"Gemini API request failed: {str(e)}"}), 500
+
+# --- Main Execution ---
 if __name__ == '__main__':
     load_models()
     app.run(host='0.0.0.0', port=5000)
