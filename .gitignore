@@ -44,3 +44,4 @@ data/
 datasets/
 
 .npz
+firebase_key.json
