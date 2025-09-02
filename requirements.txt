@@ -1,9 +1,12 @@
-# /requirements.txt
+# requirements.txt
+
 flask
 flask-cors
-torch
+--find-links https://download.pytorch.org/whl/torch_stable.html
+torch==2.1.0+cpu
 transformers
 joblib
 google-generativeai
 python-dotenv
 firebase-admin
+huggingface-hub
