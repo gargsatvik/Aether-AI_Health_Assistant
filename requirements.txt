@@ -1,12 +1,10 @@
-# requirements.txt
-
 flask
 flask-cors
---extra-index-url https://download.pytorch.org/whl/cpu
-torch==2.3.1
 transformers
 joblib
 google-generativeai
 python-dotenv
 firebase-admin
 huggingface-hub
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch
