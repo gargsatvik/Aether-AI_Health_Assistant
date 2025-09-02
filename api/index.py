@@ -118,3 +118,8 @@ def chat():
     return jsonify({"reply": "This is a placeholder reply."})
 # ... etc.
 
+if __name__ == "__main__":
+    # The port is set by Render's environment variable, default to 10000 for local testing
+    port = int(os.environ.get('PORT', 10000))
+    # Use 0.0.0.0 to make it accessible from outside the container
+    app.run(host='0.0.0.0', port=port)
