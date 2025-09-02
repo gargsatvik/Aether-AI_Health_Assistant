@@ -1,0 +1,9 @@
+# /requirements.txt
+flask
+flask-cors
+torch
+transformers
+joblib
+google-generativeai
+python-dotenv
+firebase-admin

@@ -20,7 +20,6 @@ poetry.lock
 # Data & model files (optional — keep local if large)
 *.h5
 *.pkl
-*.joblib
 *.pt
 *.pth
 *.onnx
@@ -42,7 +41,7 @@ Thumbs.db
 # Large datasets
 data/
 datasets/
-models/
+models_old/
 
 .npz
 firebase_key.json
