@@ -1,6 +1,8 @@
+# requirements.txt
+
 flask
 flask-cors
---index-url https://download.pytorch.org/whl/cpu
+--extra-index-url https://download.pytorch.org/whl/cpu
 torch==2.3.1
 transformers
 joblib
