@@ -42,6 +42,7 @@ Thumbs.db
 data/
 datasets/
 models_old/
+models/
 
 .npz
 firebase_key.json
