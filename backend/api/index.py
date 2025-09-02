@@ -16,9 +16,9 @@ from huggingface_hub import hf_hub_download
 app = Flask(__name__)
 
 # --- CORS CONFIGURATION (MODIFIED) ---
-# Explicitly allow requests from your Vercel frontend domain.
+# Explicitly allow requests from your NEW Vercel frontend domain.
 # This is the key to fixing the CORS error.
-CORS(app, resources={r"/*": {"origins": "https://health-fbi77po7j-gargsatviks-projects.vercel.app"}})
+CORS(app, resources={r"/*": {"origins": "https://health-app-lilac.vercel.app"}})
 
 load_dotenv()
 
@@ -124,7 +124,7 @@ def get_chats():
 
 @app.route('/save_chat', methods=['POST'])
 def save_chat():
-    if not db: return jsonify({"error": "Firestore is not initialized."}), 500
+    if not db: return jsonify({"error": "Firestore not initialized."}), 500
     data = request.get_json(); user_id = data.get('userId'); chat_data = data.get('chatData')
     if not user_id or not chat_data: return jsonify({"error": "User ID or chat data is missing."}), 400
 
