@@ -14,12 +14,8 @@ from huggingface_hub import hf_hub_download
 
 # --- App and Environment Initialization ---
 app = Flask(__name__)
-
-# --- CORS CONFIGURATION (MODIFIED) ---
-# Explicitly allow requests from your NEW Vercel frontend domain.
-# This is the key to fixing the CORS error.
-CORS(app, resources={r"/*": {"origins": "https://health-app-lilac.vercel.app"}})
-
+# Allow all origins for broader compatibility, can be restricted later if needed.
+CORS(app)
 load_dotenv()
 
 # --- Firebase Initialization ---
@@ -29,6 +25,7 @@ try:
         service_account_info = json.loads(service_account_str)
         cred = credentials.Certificate(service_account_info)
     else:
+        # Fallback for local development
         cred = credentials.Certificate("firebase_key.json")
     
     if not firebase_admin._apps:
@@ -50,7 +47,11 @@ except Exception as e:
 # --- MODEL LOADING LOGIC ---
 local_model, tokenizer, label_encoder = None, None, None
 device = "cuda" if torch.cuda.is_available() else "cpu"
-repo_id = "gargsatvik31/health-ai-classifier"
+
+# --- CORRECTED MODEL REPO ID ---
+# This now points to your actual, larger model repository.
+repo_id = "gargsatvik31/health-ai-classifier" 
+# --------------------------------
 
 def load_models():
     global local_model, tokenizer, label_encoder
@@ -137,8 +138,8 @@ def save_chat():
         print(f"❌ Firestore save_chat error: {e}")
         return jsonify({"error": f"Failed to save chat: {e}"}), 500
 
-# --- Server Startup Block for Render ---
+# --- Server Startup Block ---
 if __name__ == "__main__":
-    port = int(os.environ.get('PORT', 10000))
+    port = int(os.environ.get('PORT', 7860)) # Hugging Face Spaces uses port 7860
     app.run(host='0.0.0.0', port=port)
 
