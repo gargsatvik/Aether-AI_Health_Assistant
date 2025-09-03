@@ -72,15 +72,13 @@ const useMediaQuery = (query) => {
 };
 
 // --- Firebase Configuration ---
-// NOTE: Switched to process.env for better compatibility with standard React build environments.
-// Ensure you have a .env file with REACT_APP_ prefixed variables.
 const firebaseConfig = {
-    apiKey: process.env.REACT_APP_VITE_API_KEY,
-    authDomain: process.env.REACT_APP_VITE_AUTH_DOMAIN,
-    projectId: process.env.REACT_APP_VITE_PROJECT_ID,
-    storageBucket: process.env.REACT_APP_VITE_STORAGE_BUCKET,
-    messagingSenderId: process.env.REACT_APP_VITE_MESSAGING_SENDER_ID,
-    appId: process.env.REACT_APP_VITE_APP_ID,
+    apiKey: import.meta.env.VITE_API_KEY,
+    authDomain: import.meta.env.VITE_AUTH_DOMAIN,
+    projectId: import.meta.env.VITE_PROJECT_ID,
+    storageBucket: import.meta.env.VITE_STORAGE_BUCKET,
+    messagingSenderId: import.meta.env.VITE_MESSAGING_SENDER_ID,
+    appId: import.meta.env.VITE_APP_ID,
 };
 // --- Firebase Initialization ---
 const app = initializeApp(firebaseConfig);
@@ -88,8 +86,8 @@ const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
 getFirestore(app);
 
-// --- API Layer ---
-const API_BASE = process.env.REACT_APP_VITE_API_BASE_URL || "http://localhost:5000";
+// --- API Layer (FIXED) ---
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
 const api = {
     getPrediction: async (symptoms) => {
         const res = await axios.post(`${API_BASE}/predict`, { symptoms });
