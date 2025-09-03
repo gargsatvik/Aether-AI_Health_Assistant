@@ -63,46 +63,40 @@ local_model, tokenizer, label_encoder = None, None, None
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
 # --- Define the local paths to your files ---
-MODEL_FOLDER_PATH = "./models/finetune_model" 
+MODEL_FOLDER_PATH = "./models/finetuned_model" 
 LABEL_ENCODER_PATH = "./models/label_encoder.joblib"
+
+# --- PASTE THIS NEW VERSION OF load_models() ---
 
 def load_models():
     """
     Loads the model, tokenizer, and label encoder from local paths,
-    with added debugging to verify file and folder existence first.
+    and RETURNS a detailed error string on failure.
     """
     global local_model, tokenizer, label_encoder
     
-    # --- If models are already loaded, do nothing ---
     if local_model is not None:
-        return
+        return None # <-- CHANGE HERE: Return None on success
         
     print(f"📂 First request received. Starting model loading process...")
 
-    # =================================================================
-    # --- 🕵️‍♂️ NEW DEBUGGING CHECKS ---
-    # =================================================================
-    # 1. Check if the main 'models' directory exists.
+    # --- DEBUGGING CHECKS ---
     if not os.path.isdir("./models"):
-        print(f"❌ DEBUG: The main 'models' directory does not exist! Please check your repository structure.")
-        print(f"--> Contents of root directory: {os.listdir('./')}")
-        return # Stop execution if the main folder is missing
+        error_msg = f"❌ DEBUG: The main 'models' directory does not exist! Contents of root: {os.listdir('./')}"
+        print(error_msg)
+        return error_msg # <-- CHANGE HERE
 
-    # 2. Check if the specific model sub-folder exists.
     if not os.path.isdir(MODEL_FOLDER_PATH):
-        print(f"❌ DEBUG: Model folder not found at '{MODEL_FOLDER_PATH}'")
-        # List contents of the parent 'models' directory to help find the issue
-        print(f"--> Contents of './models' directory: {os.listdir('./models')}")
-        return # Stop execution if the path is wrong
+        error_msg = f"❌ DEBUG: Model folder not found at '{MODEL_FOLDER_PATH}'. Contents of './models': {os.listdir('./models')}"
+        print(error_msg)
+        return error_msg # <-- CHANGE HERE
 
-    # 3. Check if the label encoder file exists.
     if not os.path.isfile(LABEL_ENCODER_PATH):
-        print(f"❌ DEBUG: Label encoder file not found at '{LABEL_ENCODER_PATH}'")
-        print(f"--> Contents of './models' directory: {os.listdir('./models')}")
-        return # Stop execution if the path is wrong
+        error_msg = f"❌ DEBUG: Label encoder file not found at '{LABEL_ENCODER_PATH}'. Contents of './models': {os.listdir('./models')}"
+        print(error_msg)
+        return error_msg # <-- CHANGE HERE
     
     print("✅ DEBUG: All file and folder paths verified successfully.")
-    # =================================================================
     
     try:
         print(f"--> Loading model from: {MODEL_FOLDER_PATH}")
@@ -116,20 +110,31 @@ def load_models():
         local_model.eval()
         
         print(f"✅ Models loaded successfully and moved to {device}.")
+        return None # <-- CHANGE HERE: Return None on success
         
     except Exception as e:
-        print(f"❌ CRITICAL ERROR during model loading: {e}")
-
+        error_msg = f"❌ CRITICAL ERROR during model loading: {e}"
+        print(error_msg)
+        return error_msg # <-- CHANGE HERE
+    
 # --- API ENDPOINTS ---
+
+# --- PASTE THIS NEW VERSION OF predict() ---
 
 @app.route('/predict', methods=['POST'])
 def predict():
-    global local_model
-    if local_model is None:
-        load_models()
-    if not all([local_model, tokenizer, label_encoder]):
-        return jsonify({"error": "Model could not be loaded."}), 503
+    # Call load_models() and capture the potential error message
+    load_error = load_models() # <-- CHANGE HERE
+    
+    # If load_models() returned an error, send it back immediately
+    if load_error: # <-- CHANGE HERE
+        return jsonify({"error": load_error}), 503
 
+    # This is a fallback, but the check above should catch everything
+    if not all([local_model, tokenizer, label_encoder]):
+        return jsonify({"error": "Model is not loaded for an unknown reason."}), 503
+
+    # --- (The rest of your prediction logic remains the same) ---
     data = request.get_json() or {}
     symptoms = data.get('symptoms', '')
     if not symptoms:
