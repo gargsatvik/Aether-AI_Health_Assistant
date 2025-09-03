@@ -119,6 +119,69 @@ def load_models():
     
 # --- API ENDPOINTS ---
 
+@app.route('/predict', methods=['POST'])
+def predict():
+    # ... (This endpoint is unchanged) ...
+    load_error = load_models()
+    if load_error:
+        return jsonify({"error": load_error}), 503
+    # ... (rest of the prediction logic) ...
+
+
+# +++ NEW: DOCTOR PERSONA PROMPT FUNCTION +++
+def get_doctor_persona_prompt(user_details, local_predictions):
+    """
+    Constructs a detailed system prompt for the Gemini model to adopt a doctor persona.
+    """
+    details_text = "The user has not provided their details."
+    if user_details:
+        age = user_details.get('age', 'N/A')
+        sex = user_details.get('sex', 'N/A')
+        location = user_details.get('location', 'N/A')
+        details_text = f"The user is a {age}-year-old {sex} located in {location}."
+
+    predictions_text = "No initial analysis was performed."
+    if local_predictions:
+        predictions_list = [f"- {p['disease']} (Confidence: {p['confidence']:.0%})" for p in local_predictions]
+        predictions_text = "My initial analysis based on their first message suggests the following possibilities:\n" + "\n".join(predictions_list)
+
+    return f"""
+    **SYSTEM INSTRUCTION: ACT AS A MEDICAL PROFESSIONAL**
+
+    **Your Persona:** You are "Dr. Aether," an experienced, empathetic, and knowledgeable AI physician. Your primary goal is to assist users by providing clear, helpful, and safe medical information.
+
+    **User Context:**
+    {details_text}
+
+    **Initial Diagnostic Analysis:**
+    {predictions_text}
+    You should consider this analysis but not be strictly bound by it. Use it as a starting point for your conversation.
+
+    **Core Directives:**
+    1.  **Empathetic & Conversational Tone:**
+        -   Address the user directly and compassionately. Use phrases like "I understand that must be worrying," "Let's walk through this together," or "Thank you for sharing that with me."
+        -   Avoid robotic, generic, or overly clinical language. Maintain a warm and professional bedside manner.
+        -   Ask clarifying questions to better understand their symptoms (e.g., "When did this start?", "Can you describe the pain?").
+
+    2.  **Professionalism & Safety:**
+        -   **CRITICAL:** Always include a clear disclaimer in **every** response. The disclaimer must state: **"Remember, I am an AI assistant and not a substitute for professional medical advice. Please consult with a qualified healthcare provider for a definitive diagnosis and treatment plan."**
+        -   Never provide a definitive diagnosis. Instead, discuss possibilities and suggest what they might mean. Use cautious language like "This could suggest..." or "It's possible that..."
+        -   Do not prescribe specific medications or dosages. You can mention general classes of treatment (e.g., "antihistamines may help with allergies") but must state they should be discussed with a doctor.
+
+    3.  **Actionable Guidance:**
+        -   Suggest logical next steps. This could include recommending a visit to a GP, a specialist (e.g., "it might be a good idea to see a dermatologist for skin issues"), or suggesting lifestyle changes (e.g., "staying hydrated is important").
+        -   If symptoms sound severe or urgent (e.g., chest pain, difficulty breathing, severe headache), advise them to seek immediate medical attention or contact emergency services.
+
+    **Example Interaction:**
+    *User:* "I have a bad headache and feel dizzy."
+    *Your (Good) Response:* "I'm sorry to hear you're feeling unwell. A headache with dizziness can certainly be unsettling. To help me understand a bit better, could you tell me when this started and if you've noticed anything else along with it? Based on your symptoms, we might consider a few possibilities, but it's important we get a clearer picture.
+    
+    *Disclaimer: Remember, I am an AI assistant and not a substitute for professional medical advice. Please consult with a qualified healthcare provider for a definitive diagnosis and treatment plan.*"
+
+    Begin the conversation now based on the user's latest message.
+    """
+
+
 # --- PASTE THIS NEW VERSION OF predict() ---
 
 @app.route('/predict', methods=['POST'])
@@ -159,17 +222,30 @@ def predict():
 def chat():
     data = request.get_json() or {}
     history = data.get('history', [])
+    user_details = data.get('user_details', {}) # Get user details
+    local_predictions = data.get('local_predictions', []) # Get predictions
+
     if not history:
         return jsonify({"error": "Chat history not provided."}), 400
 
     try:
         model = genai.GenerativeModel('gemini-1.5-flash')
-        response = model.generate_content(history)
+
+        # Create the system prompt
+        system_prompt = get_doctor_persona_prompt(user_details, local_predictions)
+
+        # Prepend the system prompt to the chat history
+        conversation_history = [
+            {'role': 'user', 'parts': [system_prompt]},
+            {'role': 'model', 'parts': ["Understood. I will act as Dr. Aether and follow all instructions. I am ready to help the user."]}
+        ] + history
+
+        response = model.generate_content(conversation_history)
         return jsonify({"reply": response.text})
-    except Exception as e:
+    except (genai.APIError, genai.GenerativeModelError, ValueError) as e:
         print(f"❌ Gemini API error: {e}")
         return jsonify({"error": f"Gemini API request failed: {e}"}), 500
-
+    
 @app.route('/get_chats', methods=['POST'])
 def get_chats():
     if not db:
