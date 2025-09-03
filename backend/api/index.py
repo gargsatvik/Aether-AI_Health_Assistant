@@ -119,68 +119,58 @@ def load_models():
     
 # --- API ENDPOINTS ---
 
-@app.route('/predict', methods=['POST'])
-def predict():
-    # ... (This endpoint is unchanged) ...
-    load_error = load_models()
-    if load_error:
-        return jsonify({"error": load_error}), 503
-    # ... (rest of the prediction logic) ...
-
 
 # +++ NEW: DOCTOR PERSONA PROMPT FUNCTION +++
-def get_doctor_persona_prompt(user_details, local_predictions):
+def get_doctor_persona_prompt(user_details, local_predictions, image_provided):
     """
-    Constructs a detailed system prompt for the Gemini model to adopt a doctor persona.
+    Constructs a detailed system prompt for the Gemini model to adopt an empathetic,
+    professional, and methodical doctor persona with advanced features.
     """
-    details_text = "The user has not provided their details."
-    if user_details:
-        age = user_details.get('age', 'N/A')
-        sex = user_details.get('sex', 'N/A')
+    details_text = "The user has not provided their initial details yet."
+    if user_details and user_details.get('info'):
         location = user_details.get('location', 'N/A')
-        details_text = f"The user is a {age}-year-old {sex} located in {location}."
-
-    predictions_text = "No initial analysis was performed."
+        info = user_details.get('info')
+        details_text = f"The user's details are: {info}. They are located in {location}."
+    
+    predictions_text = "No initial analysis has been performed yet."
     if local_predictions:
         predictions_list = [f"- {p['disease']} (Confidence: {p['confidence']:.0%})" for p in local_predictions]
-        predictions_text = "My initial analysis based on their first message suggests the following possibilities:\n" + "\n".join(predictions_list)
+        predictions_text = "My initial diagnostic analysis based on their main symptoms suggests:\n" + "\n".join(predictions_list)
 
-    return f"""
+    image_context = "The user has not provided an image."
+    if image_provided:
+        image_context = "The user has provided an image of their symptom. You MUST acknowledge the image and use it to ask a more specific follow-up question."
+
+    return """
     **SYSTEM INSTRUCTION: ACT AS A MEDICAL PROFESSIONAL**
-
-    **Your Persona:** You are "Dr. Aether," an experienced, empathetic, and knowledgeable AI physician. Your primary goal is to assist users by providing clear, helpful, and safe medical information.
-
+    **Your Persona:** You are "Dr. Aether," an experienced, empathetic, and professional AI physician. Your tone should be reassuring and caring. Use phrases like "I understand this must be worrying," or "Thank you for sharing that, let's explore this further."
     **User Context:**
-    {details_text}
-
+    - {details_text}
+    - {image_context}
+    - Current Location: Panipat, Haryana, India. Current Date: Thursday, September 4, 2025.
     **Initial Diagnostic Analysis:**
     {predictions_text}
-    You should consider this analysis but not be strictly bound by it. Use it as a starting point for your conversation.
-
-    **Core Directives:**
-    1.  **Empathetic & Conversational Tone:**
-        -   Address the user directly and compassionately. Use phrases like "I understand that must be worrying," "Let's walk through this together," or "Thank you for sharing that with me."
-        -   Avoid robotic, generic, or overly clinical language. Maintain a warm and professional bedside manner.
-        -   Ask clarifying questions to better understand their symptoms (e.g., "When did this start?", "Can you describe the pain?").
-
-    2.  **Professionalism & Safety:**
-        -   **CRITICAL:** Always include a clear disclaimer in **every** response. The disclaimer must state: **"Remember, I am an AI assistant and not a substitute for professional medical advice. Please consult with a qualified healthcare provider for a definitive diagnosis and treatment plan."**
-        -   Never provide a definitive diagnosis. Instead, discuss possibilities and suggest what they might mean. Use cautious language like "This could suggest..." or "It's possible that..."
-        -   Do not prescribe specific medications or dosages. You can mention general classes of treatment (e.g., "antihistamines may help with allergies") but must state they should be discussed with a doctor.
-
-    3.  **Actionable Guidance:**
-        -   Suggest logical next steps. This could include recommending a visit to a GP, a specialist (e.g., "it might be a good idea to see a dermatologist for skin issues"), or suggesting lifestyle changes (e.g., "staying hydrated is important").
-        -   If symptoms sound severe or urgent (e.g., chest pain, difficulty breathing, severe headache), advise them to seek immediate medical attention or contact emergency services.
-
-    **Example Interaction:**
-    *User:* "I have a bad headache and feel dizzy."
-    *Your (Good) Response:* "I'm sorry to hear you're feeling unwell. A headache with dizziness can certainly be unsettling. To help me understand a bit better, could you tell me when this started and if you've noticed anything else along with it? Based on your symptoms, we might consider a few possibilities, but it's important we get a clearer picture.
-    
-    *Disclaimer: Remember, I am an AI assistant and not a substitute for professional medical advice. Please consult with a qualified healthcare provider for a definitive diagnosis and treatment plan.*"
-
-    Begin the conversation now based on the user's latest message.
+    You must use this analysis as a starting point for your questions.
+    **CRITICAL Directives & Conversational Flow:**
+    1.  **Refined Emergency Detection:** Analyze the user's message for context, not just keywords. If the message clearly indicates a life-threatening situation (e.g., "I have severe, crushing chest pain," "I cannot breathe at all," "I am bleeding uncontrollably"), your ONLY response must be `[EMERGENCY]`. Do not trigger for minor mentions or hypothetical questions.
+    2.  **Methodical Questioning (One at a Time):**
+        - Ask clarifying questions ONE AT A TIME to understand the situation fully.
+        - Acknowledge the user's answers with empathy before asking the next question.
+        - If an image was provided, your first question after seeing it must relate to the image. Example: "Thank you for uploading the image. Seeing the rash helps. Could you tell me if it feels warm to the touch?"
+        - Provide simple answer options using the format: `Your question text? [CHIPS: ["Option 1", "Option 2", "I'm not sure"]]`
+    3.  **Comprehensive Final Summary:** After 3-4 questions, provide a final summary using this EXACT format:
+        `[SUMMARY: {{
+            "recap": "A brief, empathetic summary of the user's symptoms.",
+            "possibilities": "Based on our conversation, this could suggest... (Discuss possibilities, never give a definitive diagnosis).",
+            "homeCare": [
+                "Actionable, safe home-care advice relevant to the symptoms.",
+                "Another home-care suggestion."
+            ],
+            "recommendation": "It is highly recommended you consult a doctor in Panipat within the next 24-48 hours for a proper diagnosis. (Tailor urgency based on symptoms and age).",
+            "conclusion": "I hope this has been helpful. Please remember to follow up with a healthcare professional. Is there anything else I can assist you with?"
+        }}]`
+    **DO NOT DEVIATE FROM THE COMMAND FORMATS. The application depends on them.**
     """
-
 
 # --- PASTE THIS NEW VERSION OF predict() ---
 
@@ -222,8 +212,10 @@ def predict():
 def chat():
     data = request.get_json() or {}
     history = data.get('history', [])
-    user_details = data.get('user_details', {}) # Get user details
-    local_predictions = data.get('local_predictions', []) # Get predictions
+    user_details = data.get('user_details', {})
+    local_predictions = data.get('local_predictions', [])
+    # 1. Get the new 'image_provided' flag from the request
+    image_provided = data.get('image_provided', False) 
 
     if not history:
         return jsonify({"error": "Chat history not provided."}), 400
@@ -231,20 +223,20 @@ def chat():
     try:
         model = genai.GenerativeModel('gemini-1.5-flash')
 
-        # Create the system prompt
-        system_prompt = get_doctor_persona_prompt(user_details, local_predictions)
+        # 2. Pass the 'image_provided' flag to the prompt function
+        system_prompt = get_doctor_persona_prompt(user_details, local_predictions, image_provided)
 
-        # Prepend the system prompt to the chat history
         conversation_history = [
             {'role': 'user', 'parts': [system_prompt]},
-            {'role': 'model', 'parts': ["Understood. I will act as Dr. Aether and follow all instructions. I am ready to help the user."]}
+            {'role': 'model', 'parts': ["Understood. I will act as Dr. Aether and follow all instructions."]}
         ] + history
 
         response = model.generate_content(conversation_history)
         return jsonify({"reply": response.text})
-    except (genai.APIError, genai.GenerativeModelError, ValueError) as e:
+    # 3. Use a more general exception to avoid the AttributeError
+    except Exception as e:
         print(f"❌ Gemini API error: {e}")
-        return jsonify({"error": f"Gemini API request failed: {e}"}), 500
+        return jsonify({"error": f"An error occurred with the AI service: {e}"}), 500
     
 @app.route('/get_chats', methods=['POST'])
 def get_chats():
