@@ -4,6 +4,7 @@ transformers
 joblib
 google-generativeai
 python-dotenv
+scikit-learn
 firebase-admin
 huggingface-hub
 --extra-index-url https://download.pytorch.org/whl/cpu
