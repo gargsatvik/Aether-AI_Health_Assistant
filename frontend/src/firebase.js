@@ -4,9 +4,6 @@ import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from "firebase/
 import { getFirestore } from "firebase/firestore";
 import { getAnalytics } from "firebase/analytics";
 
-
-// IMPORTANT: Replace with your own Firebase configuration from your project's settings.
-// It's highly recommended to use environment variables (.env file) for this to keep your keys secure.
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
@@ -17,12 +14,33 @@ const firebaseConfig = {
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
-
 // Export Firebase services
 export const auth = getAuth(app);
 export const provider = new GoogleAuthProvider();
 export const db = getFirestore(app);
 export { signInWithPopup, signOut };
+
+
+const isFirebaseConfigured = !!firebaseConfig.apiKey && !!firebaseConfig.authDomain && !!firebaseConfig.projectId && !!firebaseConfig.appId;
+
+let app;
+let analytics;
+let auth;
+let provider;
+let db;
+
+if (isFirebaseConfigured) {
+  app = initializeApp(firebaseConfig);
+  try {
+    analytics = getAnalytics(app);
+  } catch {
+    // analytics is optional in some environments
+  }
+  auth = getAuth(app);
+  provider = new GoogleAuthProvider();
+  db = getFirestore(app);
+} else {
+  console.warn("Firebase not configured. Set VITE_FIREBASE_* environment variables.");
+}
+
+export { auth, provider, db, signInWithPopup, signOut, isFirebaseConfigured };
