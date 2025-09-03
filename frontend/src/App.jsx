@@ -20,8 +20,10 @@ const styles = {
     messageBubble: { padding: '1rem', borderRadius: '1.5rem', maxWidth: '75%', color: 'white', lineHeight: '1.5', wordWrap: 'break-word' },
     userMessage: { backgroundColor: '#0284c7', borderRadius: '1.5rem 1.5rem 0.25rem 1.5rem', alignSelf: 'flex-end' },
     modelMessage: { backgroundColor: '#334155', borderRadius: '1.5rem 1.5rem 1.5rem 0.25rem' },
-    chatInput: { width: '100%', padding: '1rem 3.5rem 1rem 1rem', backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '0.5rem', color: 'white', fontSize: '1rem', outline: 'none' },
-    sendButton: { position: 'absolute', right: '2rem', top: '50%', transform: 'translateY(-50%)', padding: '0.5rem', borderRadius: '0.375rem', color: 'white', border: 'none', cursor: 'pointer', backgroundColor: '#0ea5e9', transition: 'background-color 0.2s' },
+    chatInput: { flexGrow: 1, padding: '1rem', backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '0.5rem', color: 'white', fontSize: '1rem', outline: 'none' },
+    chatInputContainer: { display: 'flex', gap: '0.5rem', alignItems: 'center' },
+    iconButton: { background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '0.5rem' },
+    sendButton: { padding: '0.5rem', borderRadius: '0.375rem', color: 'white', border: 'none', cursor: 'pointer', backgroundColor: '#0ea5e9', transition: 'background-color 0.2s' },
     analysisCard: { padding: '1rem', margin: '0 1.5rem 1rem', border: '1px solid #334155', borderRadius: '0.75rem', backgroundColor: 'rgba(30, 41, 59, 0.5)' },
     analysisTitle: { display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', fontWeight: '600', color: '#94a3b8', marginBottom: '0.75rem' },
     locationDisplay: { padding: '1rem', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.875rem', color: '#94a3b8', borderTop: '1px solid #1e293b' },
@@ -36,6 +38,10 @@ const styles = {
     summarySection: { marginBottom: '1rem' },
     summaryLabel: { fontWeight: '600', color: '#94a3b8', marginBottom: '0.25rem' },
     copyButton: { float: 'right', background: 'none', border: '1px solid #475569', color: '#94a3b8', borderRadius: '0.25rem', padding: '0.25rem 0.5rem', cursor: 'pointer' },
+    imagePreviewContainer: { position: 'relative', width: '60px', height: '60px', marginRight: '0.5rem' },
+    imagePreview: { width: '100%', height: '100%', borderRadius: '0.5rem', objectFit: 'cover' },
+    removeImageButton: { position: 'absolute', top: '-5px', right: '-5px', background: '#334155', color: 'white', border: '1px solid #475569', borderRadius: '50%', width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' },
+    uploadedImageInChat: { maxWidth: '100%', maxHeight: '300px', borderRadius: '0.75rem', marginTop: '0.5rem' },
 };
 
 // --- Helper Hook ---
@@ -49,7 +55,6 @@ const useMediaQuery = (query) => {
     }, [query]);
     return matches;
 };
-
 // --- Firebase Configuration ---
 const firebaseConfig = {
     apiKey: import.meta.env.VITE_API_KEY,
@@ -68,25 +73,12 @@ getFirestore(app);
 // --- API Layer (FIXED) ---
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
 const api = {
-    getPrediction: async (symptoms) => {
-        const res = await axios.post(`${API_BASE}/predict`, { symptoms });
-        return res.data || [];
+    getPrediction: async (symptoms) => (await axios.post(`${API_BASE}/predict`, { symptoms })).data || [],
+    chatWithAI: async (history, predictions, userDetails, image_provided) => {
+        return (await axios.post(`${API_BASE}/chat`, { history, local_predictions: predictions, user_details: userDetails, image_provided })).data;
     },
-    chatWithAI: async (history, predictions, userDetails) => {
-        const res = await axios.post(`${API_BASE}/chat`, {
-            history,
-            local_predictions: predictions,
-            user_details: userDetails,
-        });
-        return res.data;
-    },
-    getChats: async (userId) => {
-        const res = await axios.post(`${API_BASE}/get_chats`, { user_id: userId });
-        return res.data || [];
-    },
-    saveChat: async (userId, chatData) => {
-        await axios.post(`${API_BASE}/save_chat`, { userId, chatData });
-    },
+    getChats: async (userId) => (await axios.post(`${API_BASE}/get_chats`, { user_id: userId })).data || [],
+    saveChat: async (userId, chatData) => await axios.post(`${API_BASE}/save_chat`, { userId, chatData }),
 };
 
 // --- SVG Icons ---
@@ -100,6 +92,7 @@ const XIcon = () => (<svg style={{width: '24px', height: '24px'}} fill="none" st
 const BrainCircuitIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a10 10 0 0 0-10 10c0 1.85.54 3.58 1.48 5.04M12 22a10 10 0 0 0 10-10c0-1.85-.54-3.58-1.48-5.04"/><path d="M12 2v20"/><path d="m18.5 4.5-.42.42c-1.33 1.33-2.08 3.12-2.08 4.95v.21c0 1.83.75 3.62 2.08 4.95l.42.42"/><path d="m18.5 19.5-.42-.42c-1.33-1.33-2.08-3.12-2.08-4.95v-.21c0-1.83.75-3.62 2.08-4.95l.42-.42"/><path d="m5.5 4.5.42.42c1.33 1.33 2.08 3.12 2.08 4.95v.21c0 1.83-.75 3.62-2.08 4.95l-.42.42"/><path d="m5.5 19.5.42-.42c1.33-1.33-2.08-3.12-2.08-4.95v-.21c0-1.83-.75-3.62-2.08-4.95l-.42-.42"/></svg>);
 const LocationIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>);
 const WarningIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{color: '#f87171'}}><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>);
+const PaperclipIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>);
 
 // --- Components ---
 
@@ -170,9 +163,9 @@ const LandingPage = ({ handleLogin }) => {
     return (
       <div style={{...styles.body, backgroundColor: '#111827', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center'}}>
         <div>
-          <h1 style={styles.landingTitle}>Welcome to Health AI</h1>
-          <p style={styles.landingSubtitle}>Your AI-powered health assistant.</p>
-          <button style={styles.landingButton} onClick={handleLogin}>Login to Get Started</button>
+          <h1 style={{fontSize: '3.75rem', fontWeight: '800', letterSpacing: '-0.05em', lineHeight: '1.1'}}>Welcome to Health AI</h1>
+          <p style={{marginTop: '1rem', fontSize: '1.125rem', color: '#9ca3af'}}>Your AI-powered health assistant.</p>
+          <button style={{marginTop: '2rem', backgroundImage: 'linear-gradient(to right, #2dd4bf, #38bdf8)', color: 'white', fontWeight: 'bold', padding: '12px 32px', borderRadius: '8px', border: 'none', cursor: 'pointer'}} onClick={handleLogin}>Login to Get Started</button>
         </div>
       </div>
     );
@@ -183,7 +176,15 @@ const InitialAnalysisCard = ({ predictions }) => {
     return (
         <div style={styles.analysisCard}>
             <h3 style={styles.analysisTitle}><BrainCircuitIcon /> Initial Analysis</h3>
-            {/* ... prediction bars ... */}
+            {predictions.map((p, i) => (
+                <div key={i} style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.875rem'}}>
+                    <span style={{ minWidth: '100px', flexShrink: 0 }}>{p.disease}</span>
+                    <div style={{flexGrow: 1, height: '8px', backgroundColor: '#334155', borderRadius: '4px', margin: '0 0.75rem', overflow: 'hidden'}}>
+                        <div style={{height: '100%', backgroundColor: '#38bdf8', borderRadius: '4px', width: `${p.confidence * 100}%`}}></div>
+                    </div>
+                    <span style={{ minWidth: '40px', textAlign: 'right', flexShrink: 0 }}>{(p.confidence * 100).toFixed(0)}%</span>
+                </div>
+            ))}
         </div>
     );
 };
@@ -243,6 +244,7 @@ const ChatMessage = ({ message }) => {
         {!isUser && <div style={{width: '32px', height: '32px', backgroundColor: '#334155', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0}}><HealthAILogo/></div>}
         <div style={{...styles.messageBubble, ...(isUser ? styles.userMessage : styles.modelMessage)}}>
           <p style={{ margin: 0 }} dangerouslySetInnerHTML={{ __html: message.content.replace(/\*([^*]+)\*/g, '<b>$1</b>').replace(/\n/g, '<br />') }}></p>
+          {message.image && <img src={message.image} alt="Symptom" style={styles.uploadedImageInChat} />}
         </div>
       </div>
     );
@@ -276,24 +278,21 @@ function App() {
     const [suggestionChips, setSuggestionChips] = useState([]);
     const [chatSummary, setChatSummary] = useState(null);
     const [isChatConcluded, setIsChatConcluded] = useState(false);
+    const [imageFile, setImageFile] = useState(null);
+    const [imagePreview, setImagePreview] = useState(null);
     
     const isDesktop = useMediaQuery('(min-width: 1024px)');
     const chatEndRef = useRef(null);
+    const fileInputRef = useRef(null);
 
     useEffect(() => {
         Object.assign(document.body.style, styles.body);
         const hasAccepted = localStorage.getItem('acceptedDisclaimer');
-        if (!hasAccepted) {
-            setShowDisclaimer(true);
-        }
+        if (!hasAccepted) setShowDisclaimer(true);
         const styleSheet = document.createElement("style");
         styleSheet.innerText = `@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`;
         document.head.appendChild(styleSheet);
-        return () => {
-            if (styleSheet.parentNode) {
-                styleSheet.parentNode.removeChild(styleSheet);
-            }
-        };
+        return () => { styleSheet.parentNode?.removeChild(styleSheet); };
     }, []);
 
     useEffect(() => {
@@ -316,9 +315,7 @@ function App() {
                     const { latitude, longitude } = position.coords;
                     try {
                         const response = await axios.get(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`);
-                        const city = response.data.city || 'Unknown';
-                        const country = response.data.countryName || 'Area';
-                        setUserLocation(`${city}, ${country}`);
+                        setUserLocation(`${response.data.city || 'Unknown'}, ${response.data.countryName || 'Area'}`);
                     } catch (err) { setUserLocation("Location not found"); }
                 },
                 () => { setUserLocation("Location access denied"); }
@@ -349,67 +346,67 @@ function App() {
     const startNewChat = () => {
         setActiveChatId(uuidv4());
         setMessages([{ role: 'model', content: "Hello! To provide a more personalized analysis, please tell me your name, age, and sex.\n\nFor example: *I'm Alex, 35, Male.*" }]);
-        setLocalPredictions([]);
-        setUserInput("");
-        setIsSidebarOpen(false);
-        setActiveChatHasPrediction(false);
-        setSuggestionChips([]);
-        setChatSummary(null);
-        setIsChatConcluded(false);
+        setLocalPredictions([]); setUserInput(""); setIsSidebarOpen(false); setActiveChatHasPrediction(false);
+        setSuggestionChips([]); setChatSummary(null); setIsChatConcluded(false); setImageFile(null); setImagePreview(null);
     };
 
     const handleSelectChat = (chat) => {
-        setActiveChatId(chat.id);
-        setMessages(chat.messages);
-        const preds = chat.localPredictions || [];
-        setLocalPredictions(preds);
-        setActiveChatHasPrediction(preds.length > 0);
-        setChatSummary(chat.summary || null);
-        setIsChatConcluded(!!chat.summary);
-        setSuggestionChips([]);
-        setIsSidebarOpen(false);
+        setActiveChatId(chat.id); setMessages(chat.messages);
+        const preds = chat.localPredictions || []; setLocalPredictions(preds);
+        setActiveChatHasPrediction(preds.length > 0); setChatSummary(chat.summary || null);
+        setIsChatConcluded(!!chat.summary); setSuggestionChips([]); setIsSidebarOpen(false);
     };
 
-    const handleChipClick = (chipText) => {
-        handleSendMessage(null, chipText);
+    const handleFileChange = (e) => {
+        if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0];
+            setImageFile(file);
+            setImagePreview(URL.createObjectURL(file));
+        }
+    };
+
+    const removeImage = () => {
+        setImageFile(null);
+        setImagePreview(null);
+        if(fileInputRef.current) fileInputRef.current.value = "";
     };
 
     const handleSendMessage = async (e, chipText = null) => {
         if (e) e.preventDefault();
         const textToSend = chipText || userInput;
-        if (!textToSend.trim() || loading) return;
+        if (!textToSend.trim() && !imageFile) return;
 
-        const emergencyKeywords = ["chest pain", "can't breathe", "trouble breathing", "suicidal", "severe bleeding"];
-        if (emergencyKeywords.some(keyword => textToSend.toLowerCase().includes(keyword))) {
-            const emergencyMessage = { role: 'model', content: "Your symptoms sound potentially serious. Please **call your local emergency services immediately** or go to the nearest hospital. This is not a substitute for emergency care."};
-            setMessages(prev => [...prev, { role: 'user', content: textToSend }, emergencyMessage]);
-            setIsChatConcluded(true);
-            return;
-        }
-
-        const userMessage = { role: "user", content: textToSend };
-        setMessages(prev => [...prev, userMessage]);
-        setUserInput("");
         setLoading(true);
         setSuggestionChips([]);
+
+        const reader = new FileReader();
+        const imageBase64 = imageFile ? await new Promise(resolve => {
+            reader.onloadend = () => resolve(reader.result);
+            reader.readAsDataURL(imageFile);
+        }) : null;
+
+        const userMessage = { role: "user", content: textToSend, image: imageBase64 };
+        setMessages(prev => [...prev, userMessage]);
+        
+        setUserInput("");
+        removeImage();
 
         const updatedMessages = [...messages, userMessage];
 
         try {
-            let preds = localPredictions;
             const userDetails = { location: userLocation, info: updatedMessages.find(m => m.role === 'user')?.content || userInput };
             const isSymptomMessage = updatedMessages.filter(m => m.role === 'user').length === 2;
+            let preds = localPredictions;
 
             if (isSymptomMessage && !activeChatHasPrediction) {
                 preds = await api.getPrediction(textToSend);
-                setLocalPredictions(preds);
-                setActiveChatHasPrediction(true);
+                setLocalPredictions(preds); setActiveChatHasPrediction(true);
             }
 
             const history = updatedMessages.map(m => ({ role: m.role, parts: [m.content] }));
-            const res = await api.chatWithAI(history, preds, userDetails);
+            const res = await api.chatWithAI(history, preds, userDetails, !!imageBase64);
             let aiResponse = res.reply;
-
+            
             let finalSummary = chatSummary;
 
             if (aiResponse.includes('[CHIPS:')) {
@@ -419,7 +416,7 @@ function App() {
                     aiResponse = aiResponse.replace(chipMatch[0], '').trim();
                 }
             } else if (aiResponse.includes('[SUMMARY:')) {
-                const summaryMatch = aiResponse.match(/\[SUMMARY: (.*)\]/s);
+                 const summaryMatch = aiResponse.match(/\[SUMMARY: (.*)\]/s);
                  if (summaryMatch) {
                     try {
                         const summaryJson = JSON.parse(summaryMatch[1]);
@@ -472,18 +469,9 @@ function App() {
     
     return (
         <div style={styles.appContainer}>
-            <ChatHistorySidebar
-                user={user} chats={chats} onSelectChat={handleSelectChat}
-                activeChatId={activeChatId} onNewChat={startNewChat} onLogout={handleLogout}
-                isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen}
-                userLocation={userLocation}
-            />
+            <ChatHistorySidebar user={user} chats={chats} onSelectChat={handleSelectChat} activeChatId={activeChatId} onNewChat={startNewChat} onLogout={handleLogout} isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} userLocation={userLocation} />
             <main style={{ ...styles.mainContent, marginLeft: isDesktop ? '288px' : '0' }}>
-                {!isDesktop && (
-                    <button onClick={() => setIsSidebarOpen(true)} style={{ position: 'fixed', top: '1rem', left: '1rem', zIndex: 50, background: 'rgba(30, 41, 59, 0.5)', border: 'none', padding: '0.5rem', borderRadius: '0.375rem', color: 'white', cursor: 'pointer' }}>
-                        <MenuIcon />
-                    </button>
-                )}
+                {!isDesktop && (<button onClick={() => setIsSidebarOpen(true)} style={{ position: 'fixed', top: '1rem', left: '1rem', zIndex: 50, background: 'rgba(30, 41, 59, 0.5)', border: 'none', padding: '0.5rem', borderRadius: '0.375rem', color: 'white', cursor: 'pointer' }}><MenuIcon /></button>)}
                 {activeChatId ? (
                     <div style={styles.chatScreen}>
                         <div style={styles.chatMessagesContainer}>
@@ -494,12 +482,19 @@ function App() {
                         </div>
                         {!isChatConcluded && <SuggestionChips chips={suggestionChips} onChipClick={handleChipClick} />}
                         <div style={{padding: '1.5rem', borderTop: '1px solid #1e293b'}}>
-                            <form onSubmit={handleSendMessage} style={{position: 'relative'}}>
-                                <input
-                                    type="text"
-                                    value={userInput}
-                                    onChange={(e) => setUserInput(e.target.value)}
-                                    placeholder={isChatConcluded ? "This chat has ended. Start a new one." : "Describe your symptoms..."}
+                            <form onSubmit={handleSendMessage} style={styles.chatInputContainer}>
+                                <input type="file" ref={fileInputRef} onChange={handleFileChange} style={{ display: 'none' }} accept="image/*" />
+                                <button type="button" style={styles.iconButton} onClick={() => fileInputRef.current.click()} disabled={loading || isChatConcluded}>
+                                    <PaperclipIcon />
+                                </button>
+                                {imagePreview && (
+                                    <div style={styles.imagePreviewContainer}>
+                                        <img src={imagePreview} alt="Preview" style={styles.imagePreview} />
+                                        <button type="button" style={styles.removeImageButton} onClick={removeImage}>&times;</button>
+                                    </div>
+                                )}
+                                <input type="text" value={userInput} onChange={(e) => setUserInput(e.target.value)}
+                                    placeholder={isChatConcluded ? "This chat has ended." : "Describe your symptoms..."}
                                     style={styles.chatInput}
                                     disabled={loading || isChatConcluded}
                                 />
@@ -509,9 +504,7 @@ function App() {
                             </form>
                         </div>
                     </div>
-                ) : (
-                    <WelcomeScreen onNewChat={startNewChat} />
-                )}
+                ) : ( <WelcomeScreen onNewChat={startNewChat} /> )}
             </main>
         </div>
     );
