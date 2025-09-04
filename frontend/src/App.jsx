@@ -434,7 +434,7 @@ const PrivacyPolicyPage = () => (
             <p style={styles.privacyText}>The security of your data is important to us. We use industry-standard measures, including encryption provided by Google Cloud services, to protect your information. However, no method of transmission over the Internet is 100% secure.</p>
 
             <h2 style={styles.privacySectionTitle}>5. Contact Us</h2>
-            <p style={styles.privacyText}>If you have any questions about this Privacy Policy, please contact us at [Your Contact Email].</p>
+            <p style={styles.privacyText}>If you have any questions about this Privacy Policy, please contact us at gargsatvik31@outlook.com.</p>
         </div>
     </div>
 );
