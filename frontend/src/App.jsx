@@ -4,15 +4,14 @@ import axios from "axios";
 import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
-
 // --- Firebase & API Layer (Defined before Components) ---
 const firebaseConfig = {
-    apiKey: process.env.VITE_API_KEY,
-    authDomain: process.env.VITE_AUTH_DOMAIN,
-    projectId: process.env.VITE_PROJECT_ID,
-    storageBucket: process.env.VITE_STORAGE_BUCKET,
-    messagingSenderId: process.env.VITE_MESSAGING_SENDER_ID,
-    appId: process.env.VITE_APP_ID,
+    apiKey: import.meta.env.VITE_API_KEY,
+    authDomain: import.meta.env.VITE_AUTH_DOMAIN,
+    projectId: import.meta.env.VITE_PROJECT_ID,
+    storageBucket: import.meta.env.VITE_STORAGE_BUCKET,
+    messagingSenderId: import.meta.env.VITE_MESSAGING_SENDER_ID,
+    appId: import.meta.env.VITE_APP_ID,
 };
 
 const app = initializeApp(firebaseConfig);
@@ -20,7 +19,7 @@ const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
 getFirestore(app);
 
-const API_BASE = process.env.VITE_API_BASE_URL || "http://localhost:5000";
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
 const api = {
     chatWithAI: async (history, predictions, stage) => {
         return (await axios.post(`${API_BASE}/chat`, { history, local_predictions: predictions, stage })).data;
