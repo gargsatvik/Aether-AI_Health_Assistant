@@ -5,27 +5,49 @@ import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
-// IMPORTANT: Import your local logo file here
-// For example: import logoUrl from './assets/logo.png';
-// Then you can use `logoUrl` in the LandingPage component.
-// For now, I will use a placeholder SVG.
+// IMPORTANT: The 'logo.png' file should be in the 'src/assets' directory for this import to work.
+import logoUrl from './assets/logo.png';
 
-// --- Styles (Updated for a Minimal, Dark Aesthetic) ---
+// --- Firebase & API Layer (Defined before Components) ---
+const firebaseConfig = {
+    apiKey: import.meta.env.VITE_API_KEY,
+    authDomain: import.meta.env.VITE_AUTH_DOMAIN,
+    projectId: import.meta.env.VITE_PROJECT_ID,
+    storageBucket: import.meta.env.VITE_STORAGE_BUCKET,
+    messagingSenderId: import.meta.env.VITE_MESSAGING_SENDER_ID,
+    appId: import.meta.env.VITE_APP_ID,
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const provider = new GoogleAuthProvider();
+getFirestore(app);
+
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+const api = {
+    getPrediction: async (symptoms) => (await axios.post(`${API_BASE}/predict`, { symptoms })).data || [],
+    chatWithAI: async (history, predictions, userDetails, image_provided) => {
+        return (await axios.post(`${API_BASE}/chat`, { history, local_predictions: predictions, user_details: userDetails, image_provided })).data;
+    },
+    getChats: async (userId) => (await axios.post(`${API_BASE}/get_chats`, { user_id: userId })).data || [],
+    saveChat: async (userId, chatData) => await axios.post(`${API_BASE}/save_chat`, { userId, chatData }),
+};
+
+// --- Styles ---
 const styles = {
-    // 1. Core Palette & Typography (Inspired by your guide)
+    // Core Palette & Typography
     colors: {
         background: '#121212',
-        surface: '#1E1E1E', // Slightly lighter for cards/modals and header/footer
+        surface: '#1E1E1E',
         primaryText: '#FFFFFF',
         secondaryText: '#A9A9A9',
         accent: '#FFFFFF',
         accentText: '#121212',
         subtleBorder: '#282828',
-        glow: 'rgba(0, 190, 255, 0.7)', // Electric blue for animation
+        glow: 'rgba(0, 190, 255, 0.7)',
     },
     fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
-
-    // 2. Global & Body Styles
+    // Global & Body
     body: {
         margin: 0,
         fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
@@ -34,10 +56,7 @@ const styles = {
         height: '100vh',
         overflow: 'hidden',
     },
-    appContainer: {
-        display: 'flex',
-        height: '100vh',
-    },
+    appContainer: { display: 'flex', height: '100vh' },
     mainContent: {
         flex: 1,
         display: 'flex',
@@ -46,10 +65,11 @@ const styles = {
         transition: 'margin-left 0.3s ease-in-out',
         backgroundColor: '#121212',
     },
-
-    // --- NEW Landing Page Styles ---
+    // Landing Page
     landingContainer: {
-        ...styles.body,
+        backgroundColor: '#121212',
+        color: '#A9A9A9',
+        height: '100vh',
         display: 'flex',
         flexDirection: 'column',
         boxSizing: 'border-box',
@@ -79,274 +99,163 @@ const styles = {
         textAlign: 'center',
         padding: '32px',
         gap: '24px',
+        position: 'relative',
+        overflow: 'hidden'
     },
     landingCanvas: {
-        maxWidth: '400px',
-        maxHeight: '300px',
-    },
-
-    // 3. Component Styling
-    sidebar: {
-        position: 'fixed',
+        position: 'absolute',
         top: 0,
         left: 0,
+        width: '100%',
         height: '100%',
-        width: '288px',
-        backgroundColor: '#121212',
-        borderRight: '1px solid #282828',
-        transition: 'transform 0.3s ease-in-out',
-        zIndex: 40,
-        display: 'flex',
-        flexDirection: 'column',
+        zIndex: 0,
+    },
+    landingContent: { zIndex: 1 },
+    // Component Styling
+    sidebar: {
+        position: 'fixed', top: 0, left: 0, height: '100%', width: '288px',
+        backgroundColor: '#121212', borderRight: '1px solid #282828',
+        transition: 'transform 0.3s ease-in-out', zIndex: 40,
+        display: 'flex', flexDirection: 'column',
     },
     sidebarHeader: {
-        padding: '1.5rem',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
+        padding: '1.5rem', display: 'flex',
+        justifyContent: 'space-between', alignItems: 'center',
     },
     sidebarNewChatBtn: {
-        width: 'calc(100% - 3rem)',
-        margin: '0 1.5rem',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: '0.5rem',
-        padding: '12px 24px',
-        fontSize: '16px',
-        fontWeight: '500',
-        color: '#121212',
-        backgroundColor: '#FFFFFF',
-        borderRadius: '9999px',
-        border: 'none',
-        cursor: 'pointer',
+        width: 'auto', margin: '0', display: 'flex',
+        alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
+        padding: '12px 24px', fontSize: '16px', fontWeight: '500',
+        color: '#121212', backgroundColor: '#FFFFFF',
+        borderRadius: '9999px', border: 'none', cursor: 'pointer',
         transition: 'transform 0.2s ease',
     },
     chatListItem: {
-        display: 'block',
-        padding: '0.75rem 1.5rem',
-        fontSize: '14px',
-        borderRadius: '9999px',
-        textDecoration: 'none',
-        whiteSpace: 'nowrap',
-        overflow: 'hidden',
-        textOverflow: 'ellipsis',
-        color: '#A9A9A9',
-        transition: 'background-color 0.2s, color 0.2s',
-        cursor: 'pointer',
+        display: 'block', padding: '0.75rem 1.5rem', fontSize: '14px',
+        borderRadius: '9999px', textDecoration: 'none', whiteSpace: 'nowrap',
+        overflow: 'hidden', textOverflow: 'ellipsis', color: '#A9A9A9',
+        transition: 'background-color 0.2s, color 0.2s', cursor: 'pointer',
     },
-    chatListItemActive: {
-        backgroundColor: '#282828',
-        color: '#FFFFFF',
-    },
-    chatScreen: {
-        display: 'flex',
-        flexDirection: 'column',
-        height: '100%',
-    },
-    chatMessagesContainer: {
-        flexGrow: 1,
-        padding: '32px',
-        overflowY: 'auto',
-    },
+    chatListItemActive: { backgroundColor: '#282828', color: '#FFFFFF' },
+    chatScreen: { display: 'flex', flexDirection: 'column', height: '100%' },
+    chatMessagesContainer: { flexGrow: 1, padding: '32px', overflowY: 'auto' },
     messageBubble: {
-        padding: '1rem 1.5rem',
-        borderRadius: '1.5rem',
-        maxWidth: '75%',
-        color: '#FFFFFF',
-        lineHeight: '1.5',
-        wordWrap: 'break-word',
+        padding: '1rem 1.5rem', borderRadius: '1.5rem', maxWidth: '75%',
+        color: '#FFFFFF', lineHeight: '1.5', wordWrap: 'break-word',
     },
     userMessage: {
         backgroundColor: '#282828',
-        borderRadius: '1.5rem 1.5rem 0.25rem 1.5rem',
-        alignSelf: 'flex-end',
+        borderRadius: '1.5rem 1.5rem 0.25rem 1.5rem', alignSelf: 'flex-end',
     },
     modelMessage: {
         backgroundColor: '#1E1E1E',
         borderRadius: '1.5rem 1.5rem 1.5rem 0.25rem',
     },
     chatInput: {
-        flexGrow: 1,
-        padding: '1rem',
-        backgroundColor: '#1E1E1E',
-        border: '1px solid #282828',
-        borderRadius: '9999px',
-        color: '#FFFFFF',
-        fontSize: '16px',
-        outline: 'none',
+        flexGrow: 1, padding: '1rem', backgroundColor: '#1E1E1E',
+        border: '1px solid #282828', borderRadius: '9999px',
+        color: '#FFFFFF', fontSize: '16px', outline: 'none',
     },
     chatInputContainer: {
-        display: 'flex',
-        gap: '0.5rem',
-        alignItems: 'center',
+        display: 'flex', gap: '0.5rem', alignItems: 'center',
         padding: '0 32px 32px 32px'
     },
     iconButton: {
-        background: 'none',
-        border: 'none',
-        color: '#A9A9A9',
-        cursor: 'pointer',
-        padding: '0.5rem',
+        background: 'none', border: 'none', color: '#A9A9A9',
+        cursor: 'pointer', padding: '0.5rem',
     },
     sendButton: {
-        padding: '12px',
-        borderRadius: '50%',
-        color: '#121212',
-        border: 'none',
-        cursor: 'pointer',
-        backgroundColor: '#FFFFFF',
-        transition: 'transform 0.2s ease',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center'
+        padding: '12px', borderRadius: '50%', color: '#121212',
+        border: 'none', cursor: 'pointer', backgroundColor: '#FFFFFF',
+        transition: 'transform 0.2s ease', display: 'flex',
+        alignItems: 'center', justifyContent: 'center'
     },
     analysisCard: {
-        padding: '1rem',
-        margin: '0 32px 1rem',
-        border: '1px solid #282828',
-        borderRadius: '0.75rem',
-        backgroundColor: '#1E1E1E',
+        padding: '1rem', margin: '0 32px 1rem', border: '1px solid #282828',
+        borderRadius: '0.75rem', backgroundColor: '#1E1E1E',
     },
     analysisTitle: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: '0.5rem',
-        fontSize: '14px',
-        fontWeight: '600',
-        color: '#A9A9A9',
+        display: 'flex', alignItems: 'center', gap: '0.5rem',
+        fontSize: '14px', fontWeight: '600', color: '#A9A9A9',
         marginBottom: '0.75rem',
     },
     locationDisplay: {
-        padding: '1rem 1.5rem',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '0.75rem',
-        fontSize: '14px',
-        color: '#A9A9A9',
+        padding: '1rem 1.5rem', display: 'flex', alignItems: 'center',
+        gap: '0.75rem', fontSize: '14px', color: '#A9A9A9',
         borderTop: '1px solid #282828',
     },
     modalBackdrop: {
-        position: 'fixed',
-        inset: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.7)',
-        zIndex: 100,
-        display: 'flex',
-        alignItems: 'center',
+        position: 'fixed', inset: 0, backgroundColor: 'rgba(0, 0, 0, 0.7)',
+        zIndex: 100, display: 'flex', alignItems: 'center',
         justifyContent: 'center',
     },
     modalContent: {
-        backgroundColor: '#1E1E1E',
-        padding: '2rem',
-        borderRadius: '0.75rem',
-        width: '90%',
-        maxWidth: '450px',
-        color: '#FFFFFF',
+        backgroundColor: '#1E1E1E', padding: '2rem', borderRadius: '0.75rem',
+        width: '90%', maxWidth: '450px', color: '#FFFFFF',
         border: '1px solid #282828',
     },
     modalTitle: {
-        fontSize: '1.25rem',
-        fontWeight: 'bold',
-        marginBottom: '1rem',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '0.5rem',
+        fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '1rem',
+        display: 'flex', alignItems: 'center', gap: '0.5rem',
     },
     modalButton: {
-        padding: '12px 24px',
-        width: '100%',
-        backgroundColor: '#FFFFFF',
-        color: '#121212',
-        fontWeight: '500',
-        border: 'none',
-        borderRadius: '9999px',
-        cursor: 'pointer',
-        marginTop: '1.5rem',
+        padding: '12px 24px', width: '100%', backgroundColor: '#FFFFFF',
+        color: '#121212', fontWeight: '500', border: 'none',
+        borderRadius: '9999px', cursor: 'pointer', marginTop: '1.5rem',
         transition: 'transform 0.2s ease',
     },
     suggestionChipsContainer: {
-        display: 'flex',
-        flexWrap: 'wrap',
-        gap: '0.5rem',
+        display: 'flex', flexWrap: 'wrap', gap: '0.5rem',
         padding: '0 32px 1rem',
     },
     suggestionChip: {
-        padding: '0.5rem 1rem',
-        backgroundColor: '#1E1E1E',
-        border: '1px solid #282828',
-        borderRadius: '9999px',
-        cursor: 'pointer',
-        color: '#A9A9A9',
+        padding: '0.5rem 1rem', backgroundColor: '#1E1E1E',
+        border: '1px solid #282828', borderRadius: '9999px',
+        cursor: 'pointer', color: '#A9A9A9',
         transition: 'background-color 0.2s',
     },
     summaryCard: {
-        margin: '0 32px 1rem',
-        padding: '1.5rem',
-        backgroundColor: '#1E1E1E',
-        border: '1px solid #282828',
-        borderRadius: '0.75rem',
+        margin: '0 32px 1rem', padding: '1.5rem', backgroundColor: '#1E1E1E',
+        border: '1px solid #282828', borderRadius: '0.75rem',
     },
     summaryTitle: {
-        fontSize: '1.125rem',
-        fontWeight: 'bold',
-        color: '#FFFFFF',
+        fontSize: '1.125rem', fontWeight: 'bold', color: '#FFFFFF',
         marginBottom: '1rem',
     },
-    summarySection: {
-        marginBottom: '1rem',
-    },
+    summarySection: { marginBottom: '1rem' },
     summaryLabel: {
-        fontWeight: '600',
-        color: '#A9A9A9',
+        fontWeight: '600', color: '#A9A9A9',
         marginBottom: '0.25rem',
     },
     copyButton: {
-        float: 'right',
-        background: 'none',
-        border: '1px solid #282828',
-        color: '#A9A9A9',
-        borderRadius: '0.25rem',
-        padding: '0.25rem 0.5rem',
-        cursor: 'pointer',
+        float: 'right', background: 'none', border: '1px solid #282828',
+        color: '#A9A9A9', borderRadius: '0.25rem',
+        padding: '0.25rem 0.5rem', cursor: 'pointer',
     },
     imagePreviewContainer: {
-        position: 'relative',
-        width: '60px',
-        height: '60px',
+        position: 'relative', width: '60px', height: '60px',
         marginRight: '0.5rem',
     },
     imagePreview: {
-        width: '100%',
-        height: '100%',
-        borderRadius: '0.5rem',
+        width: '100%', height: '100%', borderRadius: '0.5rem',
         objectFit: 'cover',
     },
     removeImageButton: {
-        position: 'absolute',
-        top: '-5px',
-        right: '-5px',
-        background: '#1E1E1E',
-        color: 'white',
-        border: '1px solid #282828',
-        borderRadius: '50%',
-        width: '20px',
-        height: '20px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        cursor: 'pointer',
+        position: 'absolute', top: '-5px', right: '-5px',
+        background: '#1E1E1E', color: 'white',
+        border: '1px solid #282828', borderRadius: '50%',
+        width: '20px', height: '20px', display: 'flex',
+        alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
     },
     uploadedImageInChat: {
-        maxWidth: '100%',
-        maxHeight: '300px',
-        borderRadius: '0.75rem',
+        maxWidth: '100%', maxHeight: '300px', borderRadius: '0.75rem',
         marginTop: '0.5rem',
     },
 };
 
 // --- Helper Hook ---
 const useMediaQuery = (query) => {
-    const [matches, setMatches] = useState(window.matchMedia(query).matches);
+    const [matches, setMatches] = useState(() => window.matchMedia(query).matches);
     useEffect(() => {
         const media = window.matchMedia(query);
         const listener = () => setMatches(media.matches);
@@ -356,148 +265,85 @@ const useMediaQuery = (query) => {
     return matches;
 };
 
-
-// --- Firebase Configuration ---
-const firebaseConfig = {
-    apiKey: import.meta.env.VITE_API_KEY,
-    authDomain: import.meta.env.VITE_AUTH_DOMAIN,
-    projectId: import.meta.env.VITE_PROJECT_ID,
-    storageBucket: import.meta.env.VITE_STORAGE_BUCKET,
-    messagingSenderId: import.meta.env.VITE_MESSAGING_SENDER_ID,
-    appId: import.meta.env.VITE_APP_ID,
-};
-// --- Firebase Initialization ---
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const provider = new GoogleAuthProvider();
-getFirestore(app);
-
-// --- API Layer (FIXED) ---
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
-const api = {
-    getPrediction: async (symptoms) => (await axios.post(`${API_BASE}/predict`, { symptoms })).data || [],
-    chatWithAI: async (history, predictions, userDetails, image_provided) => {
-        return (await axios.post(`${API_BASE}/chat`, { history, local_predictions: predictions, user_details: userDetails, image_provided })).data;
-    },
-    getChats: async (userId) => (await axios.post(`${API_BASE}/get_chats`, { user_id: userId })).data || [],
-    saveChat: async (userId, chatData) => await axios.post(`${API_BASE}/save_chat`, { userId, chatData }),
-};
-
 // --- SVG Icons ---
-const AetherLogo = () => (<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{width: '32px', height: '32px'}}><path d="M12 2L3 22H21L12 2Z" stroke="#e0e0e0" strokeWidth="1.5" /><path d="M7 15L12 5L17 15H7Z" stroke="#e0e0e0" strokeWidth="1.5" /></svg>);
+const AetherLogo = () => <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{width:'32px',height:'32px'}}><path d="M12 2L3 22H21L12 2Z" stroke="#e0e0e0" strokeWidth="1.5" /><path d="M7 15L12 5L17 15H7Z" stroke="#e0e0e0" strokeWidth="1.5" /></svg>;
 const YourLogo = () => (
-    // Replace this with your actual <img src={logoUrl} /> tag
     <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2L15.09 8.09L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.09L12 2Z" stroke="#A9A9A9" strokeWidth="2" /><path d="M9 12H15" stroke="#A9A9A9" strokeWidth="2" /><path d="M12 9V15" stroke="#A9A9A9" strokeWidth="2" /></svg>
+        <img src={logoUrl} alt="Health AI Logo" style={{ height: '32px' }} />
         <span style={{color: styles.colors.primaryText, fontWeight: 'bold', fontSize: '20px'}}>Health AI</span>
     </div>
 );
-const SendIcon = () => (<svg style={{width: '24px', height: '24px'}} viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path></svg>);
-const PlusIcon = () => (<svg style={{width: '20px', height: '20px'}} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>);
-const SignOutIcon = () => (<svg style={{width: '20px', height: '20px'}} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>);
-const MenuIcon = () => (<svg style={{width: '24px', height: '24px'}} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>);
-const XIcon = () => (<svg style={{width: '24px', height: '24px'}} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>);
-const BrainCircuitIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a10 10 0 0 0-10 10c0 1.85.54 3.58 1.48 5.04M12 22a10 10 0 0 0 10-10c0-1.85-.54-3.58-1.48-5.04"/><path d="M12 2v20"/><path d="m18.5 4.5-.42.42c-1.33 1.33-2.08 3.12-2.08 4.95v.21c0 1.83.75 3.62 2.08 4.95l.42.42"/><path d="m18.5 19.5-.42-.42c-1.33-1.33-2.08-3.12-2.08-4.95v-.21c0-1.83.75-3.62-2.08-4.95l.42-.42"/><path d="m5.5 4.5.42.42c1.33 1.33 2.08 3.12 2.08 4.95v.21c0 1.83-.75-3.62-2.08-4.95l-.42.42"/><path d="m5.5 19.5.42-.42c1.33-1.33-2.08-3.12-2.08-4.95v-.21c0-1.83-.75-3.62-2.08-4.95l-.42-.42"/></svg>);
-const LocationIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>);
-const WarningIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{color: '#f87171'}}><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>);
-const PaperclipIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>);
+const SendIcon = () => <svg style={{width:'24px',height:'24px'}} viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" /></svg>;
+const PlusIcon = () => <svg style={{width:'20px',height:'20px'}} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>;
+const SignOutIcon = () => <svg style={{width:'20px',height:'20px'}} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>;
+const MenuIcon = () => <svg style={{width:'24px',height:'24px'}} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>;
+const XIcon = () => <svg style={{width:'24px',height:'24px'}} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>;
+const BrainCircuitIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a10 10 0 0 0-10 10c0 1.85.54 3.58 1.48 5.04M12 22a10 10 0 0 0 10-10c0-1.85-.54-3.58-1.48-5.04M12 2v20m6.5-15.5-.42.42c-1.33 1.33-2.08 3.12-2.08 4.95v.21c0 1.83.75 3.62 2.08 4.95l.42.42m0-15-.42-.42c-1.33-1.33-2.08-3.12-2.08-4.95v-.21c0-1.83.75-3.62 2.08-4.95l.42-.42m-13 15 .42.42c1.33 1.33 2.08 3.12 2.08 4.95v.21c0 1.83-.75 3.62-2.08 4.95l-.42.42m0-15 .42-.42c1.33-1.33-2.08-3.12-2.08-4.95v-.21c0-1.83-.75-3.62-2.08-4.95l-.42-.42" /></svg>;
+const LocationIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" /><circle cx="12" cy="10" r="3" /></svg>;
+const WarningIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{color:'#f87171'}}><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>;
+const PaperclipIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" /></svg>;
 
-// --- Components ---
-
-// --- NEW Neural Network Animation Component ---
+// --- Helper Components ---
 const NeuralNetworkAnimation = () => {
     const canvasRef = useRef(null);
-
     useEffect(() => {
-        const canvas = canvasRef.current;
-        const ctx = canvas.getContext('2d');
-        let animationFrameId;
-
+        const canvas = canvasRef.current; if (!canvas) return;
+        const ctx = canvas.getContext('2d'); let animationFrameId;
         const resizeCanvas = () => {
-            canvas.width = canvas.offsetWidth;
-            canvas.height = canvas.offsetHeight;
+            if (canvas.parentElement) {
+                canvas.width = canvas.parentElement.offsetWidth;
+                canvas.height = canvas.parentElement.offsetHeight;
+            }
         };
-
-        let particles = [];
-        const particleCount = 40;
-
+        let particles = []; const particleCount = 40;
         class Particle {
             constructor() {
-                this.x = Math.random() * canvas.width;
-                this.y = Math.random() * canvas.height;
-                this.vx = (Math.random() - 0.5) * 0.5;
-                this.vy = (Math.random() - 0.5) * 0.5;
+                this.x = Math.random() * (canvas.width || 0); this.y = Math.random() * (canvas.height || 0);
+                this.vx = (Math.random() - 0.5) * 0.5; this.vy = (Math.random() - 0.5) * 0.5;
                 this.radius = 1.5;
             }
-
             update() {
-                this.x += this.vx;
-                this.y += this.vy;
+                this.x += this.vx; this.y += this.vy;
                 if (this.x < 0 || this.x > canvas.width) this.vx *= -1;
                 if (this.y < 0 || this.y > canvas.height) this.vy *= -1;
             }
-
             draw() {
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-                ctx.fillStyle = styles.colors.glow;
-                ctx.fill();
+                ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = styles.colors.glow; ctx.fill();
             }
         }
-
         const init = () => {
-            particles = [];
-            for (let i = 0; i < particleCount; i++) {
-                particles.push(new Particle());
-            }
+            particles = []; for (let i = 0; i < particleCount; i++) particles.push(new Particle());
         };
-
         const connect = () => {
             for (let i = 0; i < particles.length; i++) {
                 for (let j = i; j < particles.length; j++) {
-                    const distance = Math.sqrt(
-                        Math.pow(particles[i].x - particles[j].x, 2) +
-                        Math.pow(particles[i].y - particles[j].y, 2)
-                    );
-
-                    if (distance < 100) {
-                        const opacity = 1 - distance / 100;
-                        ctx.strokeStyle = `rgba(0, 190, 255, ${opacity * 0.5})`;
-                        ctx.lineWidth = 1;
-                        ctx.beginPath();
-                        ctx.moveTo(particles[i].x, particles[i].y);
-                        ctx.lineTo(particles[j].x, particles[j].y);
-                        ctx.stroke();
+                    const distance = Math.hypot(particles[i].x - particles[j].x, particles[i].y - particles[j].y);
+                    if (distance < 120) {
+                        const opacity = 1 - distance / 120;
+                        ctx.strokeStyle = `rgba(0, 190, 255, ${opacity * 0.5})`; ctx.lineWidth = 1;
+                        ctx.beginPath(); ctx.moveTo(particles[i].x, particles[i].y); ctx.lineTo(particles[j].x, particles[j].y); ctx.stroke();
                     }
                 }
             }
         };
-
         const animate = () => {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            particles.forEach(p => {
-                p.update();
-                p.draw();
-            });
-            connect();
+            if (ctx) {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                particles.forEach(p => { p.update(); p.draw(); });
+                connect();
+            }
             animationFrameId = requestAnimationFrame(animate);
         };
-
-        resizeCanvas();
-        init();
-        animate();
-
+        const timeoutId = setTimeout(() => { resizeCanvas(); init(); animate(); }, 0);
         window.addEventListener('resize', resizeCanvas);
-        
         return () => {
             window.removeEventListener('resize', resizeCanvas);
-            cancelAnimationFrame(animationFrameId);
+            cancelAnimationFrame(animationFrameId); clearTimeout(timeoutId);
         };
     }, []);
-
     return <canvas ref={canvasRef} style={styles.landingCanvas} />;
 };
-
 const InitialDisclaimerModal = ({ onAccept }) => (
     <div style={styles.modalBackdrop}>
         <div style={styles.modalContent}>
@@ -508,104 +354,66 @@ const InitialDisclaimerModal = ({ onAccept }) => (
         </div>
     </div>
 );
-
 const SuggestionChips = ({ chips, onChipClick }) => (
     <div style={styles.suggestionChipsContainer}>
-        {chips.map((chip, index) => (
-            <button key={index} style={styles.suggestionChip} onClick={() => onChipClick(chip)}>{chip}</button>
-        ))}
+        {chips.map((chip, index) => <button key={index} style={styles.suggestionChip} onClick={() => onChipClick(chip)}>{chip}</button>)}
     </div>
 );
-
 const ChatSummaryCard = ({ summary }) => {
-    const summaryText = `
-**Symptom Recap:**
-${summary.recap}
-
-**Possible Causes:**
-${summary.possibilities}
-
-**Home-Care Suggestions:**
-${summary.homeCare.map(item => `- ${item}`).join('\n')}
-
-**Doctor's Recommendation:**
-${summary.recommendation}
-    `.trim();
-
-    const handleCopy = () => {
-        navigator.clipboard.writeText(summaryText);
-    };
-
+    const summaryText = `**Symptom Recap:**\n${summary.recap}\n\n**Possible Causes:**\n${summary.possibilities}\n\n**Home-Care Suggestions:**\n${summary.homeCare.map(item => `- ${item}`).join('\n')}\n\n**Doctor's Recommendation:**\n${summary.recommendation}`.trim();
+    const handleCopy = () => navigator.clipboard.writeText(summaryText);
     return (
         <div style={styles.summaryCard}>
             <button style={styles.copyButton} onClick={handleCopy}>Copy</button>
             <h3 style={styles.summaryTitle}>Consultation Summary</h3>
-            <div style={styles.summarySection}>
-                <p style={styles.summaryLabel}>Symptom Recap</p>
-                <p>{summary.recap}</p>
-            </div>
-            <div style={styles.summarySection}>
-                <p style={styles.summaryLabel}>Possible Causes</p>
-                <p>{summary.possibilities}</p>
-            </div>
-            <div style={styles.summarySection}>
-                <p style={styles.summaryLabel}>Home-Care Suggestions</p>
-                <ul style={{margin: 0, paddingLeft: '20px'}}>{summary.homeCare.map((item, i) => <li key={i}>{item}</li>)}</ul>
-            </div>
-             <div style={styles.summarySection}>
-                <p style={styles.summaryLabel}>Recommendation</p>
-                <p style={{fontWeight: 'bold'}}>{summary.recommendation}</p>
-            </div>
+            <div style={styles.summarySection}><p style={styles.summaryLabel}>Symptom Recap</p><p>{summary.recap}</p></div>
+            <div style={styles.summarySection}><p style={styles.summaryLabel}>Possible Causes</p><p>{summary.possibilities}</p></div>
+            <div style={styles.summarySection}><p style={styles.summaryLabel}>Home-Care Suggestions</p><ul style={{margin: 0, paddingLeft: '20px'}}>{summary.homeCare.map((item, i) => <li key={i}>{item}</li>)}</ul></div>
+            <div style={styles.summarySection}><p style={styles.summaryLabel}>Recommendation</p><p style={{fontWeight: 'bold'}}>{summary.recommendation}</p></div>
             <p>{summary.conclusion}</p>
         </div>
     );
 };
-
-const LandingPage = ({ handleLogin }) => {
-    return (
-      <div style={styles.landingContainer}>
+const LandingPage = ({ handleLogin }) => (
+    <div style={styles.landingContainer}>
         <header style={styles.landingHeader}>
-           <YourLogo />
-           <button style={{...styles.sidebarNewChatBtn, width: 'auto', margin: 0, backgroundColor: '#282828', color: '#FFFFFF' }} onClick={handleLogin}>Login</button>
+            <YourLogo />
+            <button style={{...styles.sidebarNewChatBtn, backgroundColor: '#282828', color: '#FFFFFF' }} onClick={handleLogin}>Login</button>
         </header>
         <main style={styles.landingMain}>
-           <NeuralNetworkAnimation />
-           <div>
-              <p style={{fontSize: '24px', fontWeight: 400, color: '#A9A9A9', margin: 0}}>Your AI-powered health assistant.</p>
-              <button style={{...styles.sidebarNewChatBtn, marginTop: '24px', width: 'auto' }} onClick={handleLogin}>Get Started</button>
-           </div>
+            <NeuralNetworkAnimation />
+            <div style={styles.landingContent}>
+                <p style={{fontSize: '24px', fontWeight: 400, color: '#A9A9A9', margin: 0}}>Your AI-powered health assistant.</p>
+                <button style={{...styles.sidebarNewChatBtn, marginTop: '24px' }} onClick={handleLogin}>Get Started</button>
+            </div>
         </main>
         <footer style={styles.landingFooter}>
             <a href="https://github.com/gargsatvik" target="_blank" rel="noopener noreferrer" style={{fontSize: '14px', color: '#A9A9A9', textDecoration: 'none'}}>My GitHub</a>
             <a href="https://github.com/gargsatvik/Health-app" target="_blank" rel="noopener noreferrer" style={{fontSize: '14px', color: '#A9A9A9', textDecoration: 'none'}}>Project Repo</a>
             <a href="/privacy" style={{fontSize: '14px', color: '#A9A9A9', textDecoration: 'none'}}>Privacy Policy</a>
         </footer>
-      </div>
-    );
-};
- 
+    </div>
+);
 const InitialAnalysisCard = ({ predictions }) => {
     if (!predictions || predictions.length === 0) return null;
     return (
         <div style={styles.analysisCard}>
             <h3 style={styles.analysisTitle}><BrainCircuitIcon /> Initial Analysis</h3>
             {predictions.map((p, i) => (
-                <div key={i} style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '14px'}}>
-                    <span style={{ minWidth: '100px', flexShrink: 0, color: styles.colors.secondaryText }}>{p.disease}</span>
-                    <div style={{flexGrow: 1, height: '8px', backgroundColor: '#282828', borderRadius: '4px', margin: '0 0.75rem', overflow: 'hidden'}}>
-                        <div style={{height: '100%', backgroundColor: '#FFFFFF', borderRadius: '4px', width: `${p.confidence * 100}%`}}></div>
+                <div key={i} style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'0.5rem',fontSize:'14px'}}>
+                    <span style={{minWidth:'100px',flexShrink:0,color:styles.colors.secondaryText}}>{p.disease}</span>
+                    <div style={{flexGrow:1,height:'8px',backgroundColor:'#282828',borderRadius:'4px',margin:'0 0.75rem',overflow:'hidden'}}>
+                        <div style={{height:'100%',backgroundColor:'#FFFFFF',borderRadius:'4px',width:`${p.confidence*100}%`}} />
                     </div>
-                    <span style={{ minWidth: '40px', textAlign: 'right', flexShrink: 0, color: styles.colors.primaryText }}>{(p.confidence * 100).toFixed(0)}%</span>
+                    <span style={{minWidth:'40px',textAlign:'right',flexShrink:0,color:styles.colors.primaryText}}>{(p.confidence*100).toFixed(0)}%</span>
                 </div>
             ))}
         </div>
     );
 };
-
 const ChatHistorySidebar = ({ chats, onSelectChat, activeChatId, onNewChat, user, onLogout, isSidebarOpen, setIsSidebarOpen, userLocation }) => {
     const isDesktop = useMediaQuery('(min-width: 1024px)');
-    const sidebarStyle = { ...styles.sidebar, transform: isDesktop || isSidebarOpen ? 'translateX(0)' : 'translateX(-100%)' };
-
+    const sidebarStyle = {...styles.sidebar, transform: isDesktop || isSidebarOpen ? 'translateX(0)' : 'translateX(-100%)'};
     return (
         <>
             <div style={sidebarStyle}>
@@ -614,61 +422,50 @@ const ChatHistorySidebar = ({ chats, onSelectChat, activeChatId, onNewChat, user
                         <AetherLogo />
                         <h1 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: 'white' }}>Aether</h1>
                     </div>
-                    {!isDesktop && <button onClick={() => setIsSidebarOpen(false)} style={{background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer'}}><XIcon /></button>}
+                    {!isDesktop && <button onClick={() => setIsSidebarOpen(false)} style={{background:'none',border:'none',color:'#94a3b8',cursor:'pointer'}}><XIcon /></button>}
                 </div>
-                <div><button onClick={onNewChat} style={styles.sidebarNewChatBtn}><PlusIcon /> New Chat</button></div>
-                <div style={{flexGrow: 1, padding: '1.5rem', overflowY: 'auto'}}>
-                    <ul style={{listStyle: 'none', margin: 0, padding: 0, gap: '0.5rem', display: 'flex', flexDirection: 'column'}}>
+                <div style={{padding:'0 1.5rem'}}><button onClick={onNewChat} style={{...styles.sidebarNewChatBtn, width:'100%', margin:0}}><PlusIcon /> New Chat</button></div>
+                <div style={{flexGrow:1, padding:'1.5rem', overflowY:'auto'}}>
+                    <ul style={{listStyle:'none', margin:0, padding:0, gap:'0.5rem', display:'flex', flexDirection:'column'}}>
                         {chats.map(chat => (
                             <li key={chat.id}>
-                                <a onClick={(e) => { e.preventDefault(); onSelectChat(chat); }} href="#" style={{...styles.chatListItem, ...(activeChatId === chat.id && styles.chatListItemActive)}}>
-                                    {chat.title || "Chat"}
-                                </a>
+                                <a onClick={(e) => { e.preventDefault(); onSelectChat(chat); }} href="#" style={{...styles.chatListItem, ...(activeChatId === chat.id && styles.chatListItemActive)}}>{chat.title || "Chat"}</a>
                             </li>
                         ))}
                     </ul>
                 </div>
-                
-                <div style={styles.locationDisplay}>
-                    <LocationIcon />
-                    <span>{userLocation}</span>
-                </div>
-
+                <div style={styles.locationDisplay}><LocationIcon /><span>{userLocation}</span></div>
                 <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid #282828' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <div style={{display: 'flex', alignItems: 'center', gap: '12px', overflow: 'hidden'}}>
-                            <img src={user.photoURL} alt="User" style={{width: '32px', height: '32px', borderRadius: '50%'}}/>
-                            <span style={{fontSize: '14px', fontWeight: '500', color: 'white', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap'}}>{user.displayName}</span>
+                        <div style={{display:'flex',alignItems:'center',gap:'12px',overflow:'hidden'}}>
+                            <img src={user.photoURL} alt="User" style={{width:'32px',height:'32px',borderRadius:'50%'}} />
+                            <span style={{fontSize:'14px',fontWeight:'500',color:'white',textOverflow:'ellipsis',overflow:'hidden',whiteSpace:'nowrap'}}>{user.displayName}</span>
                         </div>
-                        <button onClick={onLogout} style={{background: 'none', border: 'none', color: '#A9A9A9', cursor: 'pointer'}}><SignOutIcon /></button>
+                        <button onClick={onLogout} style={{background:'none',border:'none',color:'#A9A9A9',cursor:'pointer'}}><SignOutIcon /></button>
                     </div>
                 </div>
             </div>
-             {isSidebarOpen && !isDesktop && <div onClick={() => setIsSidebarOpen(false)} style={{position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 30}}></div>}
+            {isSidebarOpen && !isDesktop && <div onClick={() => setIsSidebarOpen(false)} style={{position:'fixed',inset:0,backgroundColor:'rgba(0,0,0,0.6)',zIndex:30}} />}
         </>
     );
 };
-
 const ChatMessage = ({ message }) => {
     const isUser = message.role === "user";
     return (
-      <div style={{ display: 'flex', margin: '1rem 0', gap: '12px', justifyContent: isUser ? "flex-end" : "flex-start" }}>
-        {!isUser && <div style={{width: '32px', height: '32px', backgroundColor: '#1E1E1E', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0}}><AetherLogo/></div>}
-        <div style={{...styles.messageBubble, ...(isUser ? styles.userMessage : styles.modelMessage)}}>
-          <p style={{ margin: 0 }} dangerouslySetInnerHTML={{ __html: message.content.replace(/\*([^*]+)\*/g, '<b>$1</b>').replace(/\n/g, '<br />') }}></p>
-          {message.image && <img src={message.image} alt="Symptom" style={styles.uploadedImageInChat} />}
+        <div style={{ display:'flex', margin:'1rem 0', gap:'12px', justifyContent: isUser ? "flex-end" : "flex-start" }}>
+            {!isUser && <div style={{width:'32px',height:'32px',backgroundColor:'#1E1E1E',borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><AetherLogo /></div>}
+            <div style={{...styles.messageBubble, ...(isUser ? styles.userMessage : styles.modelMessage)}}>
+                <p style={{ margin: 0 }} dangerouslySetInnerHTML={{ __html: message.content.replace(/\*([^*]+)\*/g, '<b>$1</b>').replace(/\n/g, '<br />') }} />
+                {message.image && <img src={message.image} alt="Symptom" style={styles.uploadedImageInChat} />}
+            </div>
         </div>
-      </div>
     );
 };
-
 const WelcomeScreen = ({ onNewChat }) => (
-    <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', textAlign: 'center', padding: '1rem'}}>
+    <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',height:'100%',textAlign:'center',padding:'1rem'}}>
         <AetherLogo />
-        <h2 style={{fontSize: '24px', fontWeight: 400, color: '#A9A9A9', marginTop: '1rem', marginBottom: '1.5rem'}}>Welcome to Aether Health</h2>
-        <button onClick={onNewChat} style={styles.sidebarNewChatBtn}>
-            Start New Chat
-        </button>
+        <h2 style={{fontSize:'24px',fontWeight:400,color:'#A9A9A9',marginTop:'1rem',marginBottom:'1.5rem'}}>Welcome to Aether Health</h2>
+        <button onClick={onNewChat} style={styles.sidebarNewChatBtn}>Start New Chat</button>
     </div>
 );
 
@@ -708,12 +505,8 @@ function App() {
 
     useEffect(() => {
         const unsubscribe = auth.onAuthStateChanged((currentUser) => {
-            if (currentUser) {
-                setUser(currentUser);
-                fetchUserChats(currentUser.uid);
-            } else {
-                setUser(null); setChats([]); setActiveChatId(null); setMessages([]);
-            }
+            if (currentUser) { setUser(currentUser); fetchUserChats(currentUser.uid); } 
+            else { setUser(null); setChats([]); setActiveChatId(null); setMessages([]); }
             setAuthReady(true);
         });
         return () => unsubscribe();
@@ -737,7 +530,6 @@ function App() {
     useEffect(() => {
         chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [messages, chatSummary]);
-
 
     const fetchUserChats = async (uid) => {
         try {
@@ -768,9 +560,7 @@ function App() {
         setIsChatConcluded(!!chat.summary); setSuggestionChips([]); setIsSidebarOpen(false);
     };
 
-    const handleChipClick = (chipText) => {
-        handleSendMessage(null, chipText);
-    };
+    const handleChipClick = (chipText) => { handleSendMessage(null, chipText); };
 
     const handleFileChange = (e) => {
         if (e.target.files && e.target.files[0]) {
@@ -781,8 +571,7 @@ function App() {
     };
 
     const removeImage = () => {
-        setImageFile(null);
-        setImagePreview(null);
+        setImageFile(null); setImagePreview(null);
         if(fileInputRef.current) fileInputRef.current.value = "";
     };
 
@@ -791,11 +580,10 @@ function App() {
         const textToSend = chipText || userInput;
         if (!textToSend.trim() && !imageFile) return;
 
-        setLoading(true);
-        setSuggestionChips([]);
+        setLoading(true); setSuggestionChips([]);
 
-        const reader = new FileReader();
         const imageBase64 = imageFile ? await new Promise(resolve => {
+            const reader = new FileReader();
             reader.onloadend = () => resolve(reader.result);
             reader.readAsDataURL(imageFile);
         }) : null;
@@ -803,8 +591,7 @@ function App() {
         const userMessage = { role: "user", content: textToSend, image: imageBase64 };
         setMessages(prev => [...prev, userMessage]);
         
-        setUserInput("");
-        removeImage();
+        setUserInput(""); removeImage();
 
         const updatedMessages = [...messages, userMessage];
 
@@ -821,40 +608,34 @@ function App() {
             const history = updatedMessages.map(m => ({ role: m.role, parts: [m.content] }));
             const res = await api.chatWithAI(history, preds, userDetails, !!imageBase64);
             let aiResponse = res.reply;
-            
             let finalSummary = chatSummary;
 
             if (aiResponse.includes('[CHIPS:')) {
                 const chipMatch = aiResponse.match(/\[CHIPS: (.*?)\]/s);
                 if (chipMatch) {
-                    try { setSuggestionChips(JSON.parse(chipMatch[1])); } catch (err) { console.error("Chip JSON parsing error:", err); }
+                    try { setSuggestionChips(JSON.parse(chipMatch[1])); } catch (err) { console.error("Chip JSON error:", err); }
                     aiResponse = aiResponse.replace(chipMatch[0], '').trim();
                 }
             } else if (aiResponse.includes('[SUMMARY:')) {
-                 const summaryMatch = aiResponse.match(/\[SUMMARY: (.*)\]/s);
-                 if (summaryMatch) {
+                const summaryMatch = aiResponse.match(/\[SUMMARY: (.*)\]/s);
+                if (summaryMatch) {
                     try {
                         const summaryJson = JSON.parse(summaryMatch[1]);
-                        setChatSummary(summaryJson);
-                        finalSummary = summaryJson;
-                        setIsChatConcluded(true);
+                        setChatSummary(summaryJson); finalSummary = summaryJson; setIsChatConcluded(true);
                         aiResponse = "Here is a summary of our conversation.";
-                    } catch (err) { console.error("Summary JSON parsing error:", err); }
-                 }
+                    } catch (err) { console.error("Summary JSON error:", err); }
+                }
             } else if (aiResponse.includes('[EMERGENCY]')) {
-                 aiResponse = "Based on your description, your symptoms may be serious. Please **contact your local emergency services immediately**.";
-                 setIsChatConcluded(true);
+                aiResponse = "Based on your description, your symptoms may be serious. Please **contact your local emergency services immediately**.";
+                setIsChatConcluded(true);
             }
 
             const finalMessages = [...updatedMessages, { role: "model", content: aiResponse }];
             setMessages(finalMessages);
 
             const chatToSave = {
-                id: activeChatId,
-                messages: finalMessages,
-                localPredictions: preds,
-                summary: finalSummary,
-                timestamp: new Date().toISOString(),
+                id: activeChatId, messages: finalMessages, localPredictions: preds,
+                summary: finalSummary, timestamp: new Date().toISOString(),
                 title: finalMessages.find(m => m.role === 'user')?.content.substring(0, 40) || "New Chat"
             };
 
@@ -886,22 +667,20 @@ function App() {
         <div style={styles.appContainer}>
             <ChatHistorySidebar user={user} chats={chats} onSelectChat={handleSelectChat} activeChatId={activeChatId} onNewChat={startNewChat} onLogout={handleLogout} isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} userLocation={userLocation} />
             <main style={{ ...styles.mainContent, marginLeft: isDesktop ? '288px' : '0' }}>
-                {!isDesktop && (<button onClick={() => setIsSidebarOpen(true)} style={{ position: 'fixed', top: '1rem', left: '1rem', zIndex: 50, background: 'rgba(30, 41, 59, 0.5)', border: 'none', padding: '0.5rem', borderRadius: '0.375rem', color: 'white', cursor: 'pointer' }}><MenuIcon /></button>)}
+                {!isDesktop && <button onClick={() => setIsSidebarOpen(true)} style={{ position:'fixed',top:'1rem',left:'1rem',zIndex:50,background:'rgba(30,41,59,0.5)',border:'none',padding:'0.5rem',borderRadius:'0.375rem',color:'white',cursor:'pointer' }}><MenuIcon /></button>}
                 {activeChatId ? (
                     <div style={styles.chatScreen}>
                         <div style={styles.chatMessagesContainer}>
                             {messages.map((msg, index) => <ChatMessage key={index} message={msg} />)}
                             <InitialAnalysisCard predictions={localPredictions} />
                             {chatSummary && <ChatSummaryCard summary={chatSummary} />}
-                             <div ref={chatEndRef} />
+                            <div ref={chatEndRef} />
                         </div>
                         {!isChatConcluded && <SuggestionChips chips={suggestionChips} onChipClick={handleChipClick} />}
                         <div style={{ borderTop: `1px solid ${styles.colors.subtleBorder}`}}>
                             <form onSubmit={handleSendMessage} style={styles.chatInputContainer}>
                                 <input type="file" ref={fileInputRef} onChange={handleFileChange} style={{ display: 'none' }} accept="image/*" />
-                                <button type="button" style={styles.iconButton} onClick={() => fileInputRef.current.click()} disabled={loading || isChatConcluded}>
-                                    <PaperclipIcon />
-                                </button>
+                                <button type="button" style={styles.iconButton} onClick={() => fileInputRef.current.click()} disabled={loading || isChatConcluded}><PaperclipIcon /></button>
                                 {imagePreview && (
                                     <div style={styles.imagePreviewContainer}>
                                         <img src={imagePreview} alt="Preview" style={styles.imagePreview} />
@@ -914,7 +693,7 @@ function App() {
                                     disabled={loading || isChatConcluded}
                                 />
                                 <button type="submit" style={styles.sendButton} disabled={loading || isChatConcluded}>
-                                    {loading ? <div style={{width: '24px', height: '24px', border: '2px solid #64748b', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 1s linear infinite'}}></div> : <SendIcon />}
+                                    {loading ? <div style={{width:'24px',height:'24px',border:'2px solid #64748b',borderTopColor:'white',borderRadius:'50%',animation:'spin 1s linear infinite'}} /> : <SendIcon />}
                                 </button>
                             </form>
                         </div>
