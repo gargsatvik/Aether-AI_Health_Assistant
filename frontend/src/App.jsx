@@ -68,27 +68,26 @@ const styles = {
     },
     landingHeader: {
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        padding: '20px 40px', backgroundColor: 'rgba(10, 10, 10, 0.8)',
-        borderBottom: '1px solid #262626', backdropFilter: 'blur(10px)',
-        position: 'fixed', width: 'calc(100% - 80px)', zIndex: 100,
+        padding: '20px 40px', zIndex: 100,
     },
     landingFooter: {
         display: 'flex', justifyContent: 'center', gap: '32px', padding: '24px 32px',
-        backgroundColor: '#1a1a1a', borderTop: '1px solid #262626',
+        zIndex: 100
     },
     landingMain: {
         flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
-        justifyContent: 'center', textAlign: 'center', padding: '120px 32px 32px',
+        justifyContent: 'center', textAlign: 'center', padding: '32px',
         gap: '24px', position: 'relative', overflow: 'hidden'
     },
     landingCanvas: {
-        position: 'absolute', top: '50%', left: '50%', width: '100%', height: '100%',
-        transform: 'translate(-50%, -50%)', zIndex: 0, opacity: 0.3
+        position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
+        zIndex: 0, opacity: 0.6
     },
     landingContent: { zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' },
     landingTitle: {
-        fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: 'clamp(2.5rem, 5vw, 4rem)',
+        fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: 'clamp(3rem, 6vw, 4.5rem)',
         color: '#f5f5f5', margin: '0 0 16px 0', letterSpacing: '-0.025em',
+        lineHeight: 1.2
     },
     landingSubtitle: {
         fontSize: 'clamp(1rem, 2vw, 1.25rem)', color: '#a3a3a3',
@@ -97,24 +96,8 @@ const styles = {
     landingButton: {
         backgroundColor: '#2563eb', color: '#f5f5f5', fontWeight: '500',
         padding: '14px 28px', borderRadius: '8px', border: 'none',
-        cursor: 'pointer', transition: 'background-color 0.2s ease', fontSize: '1rem',
-    },
-    featureSection: {
-        width: '100%', padding: '60px 0', zIndex: 1, backgroundColor: '#0a0a0a'
-    },
-    featureGrid: {
-        display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-        gap: '30px', maxWidth: '1100px', margin: '0 auto', padding: '0 40px',
-    },
-    featureCard: {
-        backgroundColor: 'rgba(26, 26, 26, 0.5)', border: '1px solid #262626',
-        borderRadius: '12px', padding: '24px', textAlign: 'left',
-    },
-    featureTitle: {
-        color: '#f5f5f5', fontSize: '1.1rem', fontWeight: 600, margin: '0 0 12px 0',
-    },
-    featureText: {
-        color: '#a3a3a3', fontSize: '0.95rem', lineHeight: 1.6, margin: 0
+        cursor: 'pointer', transition: 'all 0.2s ease', fontSize: '1rem',
+        boxShadow: '0 0 20px rgba(37, 99, 235, 0.4)',
     },
     sidebar: {
         position: 'fixed', top: 0, left: 0, height: '100%', width: '288px',
@@ -286,23 +269,62 @@ const PaperclipIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" h
 // --- Helper Components ---
 const NeuralNetworkAnimation = () => {
     const canvasRef = useRef(null);
+    const mouse = useRef({ x: undefined, y: undefined, radius: 100 });
+
     useEffect(() => {
         const canvas = canvasRef.current; if (!canvas) return;
         const ctx = canvas.getContext('2d'); let animationFrameId;
+        
+        const handleMouseMove = (event) => {
+            const rect = canvas.getBoundingClientRect();
+            mouse.current.x = event.clientX - rect.left;
+            mouse.current.y = event.clientY - rect.top;
+        };
+
         const resizeCanvas = () => {
             if (canvas.parentElement) {
                 canvas.width = canvas.parentElement.offsetWidth;
                 canvas.height = canvas.parentElement.offsetHeight;
             }
         };
-        let particles = []; const particleCount = 50;
+        let particles = []; const particleCount = 80; // Increased particle count
         class Particle {
             constructor() {
                 this.x = Math.random() * (canvas.width || 0); this.y = Math.random() * (canvas.height || 0);
-                this.vx = (Math.random() - 0.5) * 0.3; this.vy = (Math.random() - 0.5) * 0.3;
-                this.radius = Math.random() * 1.5;
+                this.baseX = this.x; this.baseY = this.y;
+                this.density = (Math.random() * 30) + 1;
+                this.vx = (Math.random() - 0.5) * 0.5; this.vy = (Math.random() - 0.5) * 0.5;
+                this.radius = Math.random() * 1.5 + 1;
             }
             update() {
+                // Mouse interaction
+                if (mouse.current.x !== undefined) {
+                    let dx = mouse.current.x - this.x;
+                    let dy = mouse.current.y - this.y;
+                    let distance = Math.hypot(dx, dy);
+                    let forceDirectionX = dx / distance;
+                    let forceDirectionY = dy / distance;
+                    let maxDistance = mouse.current.radius;
+                    let force = (maxDistance - distance) / maxDistance;
+                    let directionX = forceDirectionX * force * this.density;
+                    let directionY = forceDirectionY * force * this.density;
+
+                    if (distance < mouse.current.radius) {
+                        this.x -= directionX * 0.2; // Repel effect
+                        this.y -= directionY * 0.2;
+                    } else {
+                         if (this.x !== this.baseX) {
+                            let dx = this.x - this.baseX;
+                            this.x -= dx/10;
+                        }
+                        if (this.y !== this.baseY) {
+                            let dy = this.y - this.baseY;
+                            this.y -= dy/10;
+                        }
+                    }
+                }
+
+                // Standard movement
                 this.x += this.vx; this.y += this.vy;
                 if (this.x < 0 || this.x > canvas.width) this.vx *= -1;
                 if (this.y < 0 || this.y > canvas.height) this.vy *= -1;
@@ -316,12 +338,13 @@ const NeuralNetworkAnimation = () => {
             particles = []; for (let i = 0; i < particleCount; i++) particles.push(new Particle());
         };
         const connect = () => {
+            let opacityValue = 1;
             for (let i = 0; i < particles.length; i++) {
                 for (let j = i; j < particles.length; j++) {
                     const distance = Math.hypot(particles[i].x - particles[j].x, particles[i].y - particles[j].y);
-                    if (distance < 150) {
-                        const opacity = 1 - distance / 150;
-                        ctx.strokeStyle = `rgba(37, 99, 235, ${opacity * 0.3})`; ctx.lineWidth = 1;
+                    if (distance < 100) { // Reduced connection distance for denser look
+                        opacityValue = 1 - (distance/100);
+                        ctx.strokeStyle = `rgba(37, 99, 235, ${opacityValue * 0.4})`; ctx.lineWidth = 1;
                         ctx.beginPath(); ctx.moveTo(particles[i].x, particles[i].y); ctx.lineTo(particles[j].x, particles[j].y); ctx.stroke();
                     }
                 }
@@ -336,8 +359,12 @@ const NeuralNetworkAnimation = () => {
             animationFrameId = requestAnimationFrame(animate);
         };
         const timeoutId = setTimeout(() => { resizeCanvas(); init(); animate(); }, 0);
+        
+        window.addEventListener('mousemove', handleMouseMove);
         window.addEventListener('resize', resizeCanvas);
+
         return () => {
+            window.removeEventListener('mousemove', handleMouseMove);
             window.removeEventListener('resize', resizeCanvas);
             cancelAnimationFrame(animationFrameId); clearTimeout(timeoutId);
         };
@@ -378,39 +405,35 @@ const LandingPage = ({ handleLogin }) => (
     <div style={styles.landingContainer}>
         <header style={styles.landingHeader}>
             <YourLogo />
-            <button style={{...styles.sidebarNewChatBtn, backgroundColor: 'transparent', border: `1px solid ${styles.colors.subtleBorder}`, color: styles.colors.primaryText }} onClick={handleLogin}>Login</button>
+            <button 
+                style={{...styles.sidebarNewChatBtn, backgroundColor: 'transparent', border: `1px solid ${styles.colors.subtleBorder}`, color: styles.colors.primaryText }} 
+                onMouseOver={(e) => { e.currentTarget.style.backgroundColor = styles.colors.surface; }}
+                onMouseOut={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+                onClick={handleLogin}
+            >
+                Login
+            </button>
         </header>
-        <div style={{overflowY: 'auto'}}>
-            <main style={styles.landingMain}>
-                <NeuralNetworkAnimation />
-                <div style={styles.landingContent}>
-                    <h1 style={styles.landingTitle}>Intelligent Health Insights,<br />Instantly.</h1>
-                    <p style={styles.landingSubtitle}>Aether is your personal AI health companion, designed to help you understand your symptoms and guide you toward better well-being.</p>
-                    <button style={styles.landingButton} onClick={handleLogin}>Get Started For Free</button>
-                </div>
-            </main>
-            <section style={styles.featureSection}>
-                <div style={styles.featureGrid}>
-                    <div style={styles.featureCard}>
-                        <h3 style={styles.featureTitle}>AI-Powered Analysis</h3>
-                        <p style={styles.featureText}>Leverage our advanced diagnostic model to get instant, data-driven insights into your symptoms.</p>
-                    </div>
-                    <div style={styles.featureCard}>
-                        <h3 style={styles.featureTitle}>Instant Symptom Checker</h3>
-                        <p style={styles.featureText}>Describe your symptoms in plain language and receive a preliminary analysis in seconds.</p>
-                    </div>
-                    <div style={styles.featureCard}>
-                        <h3 style={styles.featureTitle}>Personalized & Private</h3>
-                        <p style={styles.featureText}>Your conversations are secure and tailored to the information you provide, ensuring privacy.</p>
-                    </div>
-                </div>
-            </section>
-            <footer style={styles.landingFooter}>
-                <a href="https://github.com/gargsatvik" target="_blank" rel="noopener noreferrer" style={{fontSize: '14px', color: '#a3a3a3', textDecoration: 'none'}}>My GitHub</a>
-                <a href="https://github.com/gargsatvik/Health-app" target="_blank" rel="noopener noreferrer" style={{fontSize: '14px', color: '#a3a3a3', textDecoration: 'none'}}>Project Repo</a>
-                <a href="/privacy" style={{fontSize: '14px', color: '#a3a3a3', textDecoration: 'none'}}>Privacy Policy</a>
-            </footer>
-        </div>
+        <main style={styles.landingMain}>
+            <NeuralNetworkAnimation />
+            <div style={styles.landingContent}>
+                <h1 style={styles.landingTitle}>Intelligent Health Insights,<br />Instantly.</h1>
+                <p style={styles.landingSubtitle}>Aether is your personal AI health companion, designed to help you understand your symptoms and guide you toward better well-being.</p>
+                <button 
+                    style={styles.landingButton} 
+                    onMouseOver={(e) => { e.currentTarget.style.backgroundColor = styles.colors.accentHover; }}
+                    onMouseOut={(e) => { e.currentTarget.style.backgroundColor = styles.colors.accent; }}
+                    onClick={handleLogin}
+                >
+                    Get Started For Free
+                </button>
+            </div>
+        </main>
+        <footer style={styles.landingFooter}>
+            <a href="https://github.com/gargsatvik" target="_blank" rel="noopener noreferrer" style={{fontSize: '14px', color: '#a3a3a3', textDecoration: 'none'}}>My GitHub</a>
+            <a href="https://github.com/gargsatvik/Health-app" target="_blank" rel="noopener noreferrer" style={{fontSize: '14px', color: '#a3a3a3', textDecoration: 'none'}}>Project Repo</a>
+            <a href="/privacy" style={{fontSize: '14px', color: '#a3a3a3', textDecoration: 'none'}}>Privacy Policy</a>
+        </footer>
     </div>
 );
 const InitialAnalysisCard = ({ predictions }) => {
