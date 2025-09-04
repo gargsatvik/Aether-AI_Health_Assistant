@@ -5,17 +5,23 @@ import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
+// IMPORTANT: Import your local logo file here
+// For example: import logoUrl from './assets/logo.png';
+// Then you can use `logoUrl` in the LandingPage component.
+// For now, I will use a placeholder SVG.
+
 // --- Styles (Updated for a Minimal, Dark Aesthetic) ---
 const styles = {
     // 1. Core Palette & Typography (Inspired by your guide)
     colors: {
         background: '#121212',
-        surface: '#1E1E1E', // Slightly lighter for cards/modals
+        surface: '#1E1E1E', // Slightly lighter for cards/modals and header/footer
         primaryText: '#FFFFFF',
         secondaryText: '#A9A9A9',
         accent: '#FFFFFF',
         accentText: '#121212',
         subtleBorder: '#282828',
+        glow: 'rgba(0, 190, 255, 0.7)', // Electric blue for animation
     },
     fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
 
@@ -39,6 +45,44 @@ const styles = {
         height: '100vh',
         transition: 'margin-left 0.3s ease-in-out',
         backgroundColor: '#121212',
+    },
+
+    // --- NEW Landing Page Styles ---
+    landingContainer: {
+        ...styles.body,
+        display: 'flex',
+        flexDirection: 'column',
+        boxSizing: 'border-box',
+    },
+    landingHeader: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: '24px 32px',
+        backgroundColor: '#1E1E1E',
+        borderBottom: '1px solid #282828',
+    },
+    landingFooter: {
+        display: 'flex',
+        justifyContent: 'center',
+        gap: '32px',
+        padding: '24px 32px',
+        backgroundColor: '#1E1E1E',
+        borderTop: '1px solid #282828',
+    },
+    landingMain: {
+        flex: 1,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        textAlign: 'center',
+        padding: '32px',
+        gap: '24px',
+    },
+    landingCanvas: {
+        maxWidth: '400px',
+        maxHeight: '300px',
     },
 
     // 3. Component Styling
@@ -312,6 +356,7 @@ const useMediaQuery = (query) => {
     return matches;
 };
 
+
 // --- Firebase Configuration ---
 const firebaseConfig = {
     apiKey: import.meta.env.VITE_API_KEY,
@@ -340,7 +385,13 @@ const api = {
 
 // --- SVG Icons ---
 const AetherLogo = () => (<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{width: '32px', height: '32px'}}><path d="M12 2L3 22H21L12 2Z" stroke="#e0e0e0" strokeWidth="1.5" /><path d="M7 15L12 5L17 15H7Z" stroke="#e0e0e0" strokeWidth="1.5" /></svg>);
-const HealthAILogo = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2L15.09 8.09L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.09L12 2Z" stroke="#A9A9A9" strokeWidth="2" /><path d="M9 12H15" stroke="#A9A9A9" strokeWidth="2" /><path d="M12 9V15" stroke="#A9A9A9" strokeWidth="2" /></svg>);
+const YourLogo = () => (
+    // Replace this with your actual <img src={logoUrl} /> tag
+    <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2L15.09 8.09L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.09L12 2Z" stroke="#A9A9A9" strokeWidth="2" /><path d="M9 12H15" stroke="#A9A9A9" strokeWidth="2" /><path d="M12 9V15" stroke="#A9A9A9" strokeWidth="2" /></svg>
+        <span style={{color: styles.colors.primaryText, fontWeight: 'bold', fontSize: '20px'}}>Health AI</span>
+    </div>
+);
 const SendIcon = () => (<svg style={{width: '24px', height: '24px'}} viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path></svg>);
 const PlusIcon = () => (<svg style={{width: '20px', height: '20px'}} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>);
 const SignOutIcon = () => (<svg style={{width: '20px', height: '20px'}} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>);
@@ -352,6 +403,100 @@ const WarningIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" width="24" he
 const PaperclipIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>);
 
 // --- Components ---
+
+// --- NEW Neural Network Animation Component ---
+const NeuralNetworkAnimation = () => {
+    const canvasRef = useRef(null);
+
+    useEffect(() => {
+        const canvas = canvasRef.current;
+        const ctx = canvas.getContext('2d');
+        let animationFrameId;
+
+        const resizeCanvas = () => {
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+        };
+
+        let particles = [];
+        const particleCount = 40;
+
+        class Particle {
+            constructor() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.vx = (Math.random() - 0.5) * 0.5;
+                this.vy = (Math.random() - 0.5) * 0.5;
+                this.radius = 1.5;
+            }
+
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                if (this.x < 0 || this.x > canvas.width) this.vx *= -1;
+                if (this.y < 0 || this.y > canvas.height) this.vy *= -1;
+            }
+
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = styles.colors.glow;
+                ctx.fill();
+            }
+        }
+
+        const init = () => {
+            particles = [];
+            for (let i = 0; i < particleCount; i++) {
+                particles.push(new Particle());
+            }
+        };
+
+        const connect = () => {
+            for (let i = 0; i < particles.length; i++) {
+                for (let j = i; j < particles.length; j++) {
+                    const distance = Math.sqrt(
+                        Math.pow(particles[i].x - particles[j].x, 2) +
+                        Math.pow(particles[i].y - particles[j].y, 2)
+                    );
+
+                    if (distance < 100) {
+                        const opacity = 1 - distance / 100;
+                        ctx.strokeStyle = `rgba(0, 190, 255, ${opacity * 0.5})`;
+                        ctx.lineWidth = 1;
+                        ctx.beginPath();
+                        ctx.moveTo(particles[i].x, particles[i].y);
+                        ctx.lineTo(particles[j].x, particles[j].y);
+                        ctx.stroke();
+                    }
+                }
+            }
+        };
+
+        const animate = () => {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => {
+                p.update();
+                p.draw();
+            });
+            connect();
+            animationFrameId = requestAnimationFrame(animate);
+        };
+
+        resizeCanvas();
+        init();
+        animate();
+
+        window.addEventListener('resize', resizeCanvas);
+        
+        return () => {
+            window.removeEventListener('resize', resizeCanvas);
+            cancelAnimationFrame(animationFrameId);
+        };
+    }, []);
+
+    return <canvas ref={canvasRef} style={styles.landingCanvas} />;
+};
 
 const InitialDisclaimerModal = ({ onAccept }) => (
     <div style={styles.modalBackdrop}>
@@ -418,19 +563,22 @@ ${summary.recommendation}
 
 const LandingPage = ({ handleLogin }) => {
     return (
-      <div style={{...styles.body, padding: '32px', display: 'flex', flexDirection: 'column', boxSizing: 'border-box'}}>
-        <header style={{display: 'flex', justifyContent: 'flex-end', width: '100%'}}>
-           <button style={{...styles.sidebarNewChatBtn, width: 'auto', backgroundColor: '#282828', color: '#FFFFFF' }} onClick={handleLogin}>Login</button>
+      <div style={styles.landingContainer}>
+        <header style={styles.landingHeader}>
+           <YourLogo />
+           <button style={{...styles.sidebarNewChatBtn, width: 'auto', margin: 0, backgroundColor: '#282828', color: '#FFFFFF' }} onClick={handleLogin}>Login</button>
         </header>
-        <main style={{flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center'}}>
+        <main style={styles.landingMain}>
+           <NeuralNetworkAnimation />
            <div>
-              <p style={{fontSize: '24px', fontWeight: 400, color: '#A9A9A9', margin: 0}}>Start your journey...</p>
-              <button style={{...styles.sidebarNewChatBtn, marginTop: '24px' }} onClick={handleLogin}>Get Started</button>
+              <p style={{fontSize: '24px', fontWeight: 400, color: '#A9A9A9', margin: 0}}>Your AI-powered health assistant.</p>
+              <button style={{...styles.sidebarNewChatBtn, marginTop: '24px', width: 'auto' }} onClick={handleLogin}>Get Started</button>
            </div>
         </main>
-        <footer style={{width: '100%', display: 'flex', justifyContent: 'center', gap: '32px'}}>
-            <a href="#" style={{fontSize: '14px', color: '#A9A9A9', textDecoration: 'none'}}>Terms of Service</a>
-            <a href="#" style={{fontSize: '14px', color: '#A9A9A9', textDecoration: 'none'}}>Privacy Policy</a>
+        <footer style={styles.landingFooter}>
+            <a href="https://github.com/gargsatvik" target="_blank" rel="noopener noreferrer" style={{fontSize: '14px', color: '#A9A9A9', textDecoration: 'none'}}>My GitHub</a>
+            <a href="https://github.com/gargsatvik/Health-app" target="_blank" rel="noopener noreferrer" style={{fontSize: '14px', color: '#A9A9A9', textDecoration: 'none'}}>Project Repo</a>
+            <a href="/privacy" style={{fontSize: '14px', color: '#A9A9A9', textDecoration: 'none'}}>Privacy Policy</a>
         </footer>
       </div>
     );
