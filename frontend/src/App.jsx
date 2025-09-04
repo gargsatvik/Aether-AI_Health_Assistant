@@ -1,12 +1,77 @@
+/*
+  --- INSTRUCTIONS FOR YOUR BACKEND (app.py) ---
+
+  To enable the new features like visual analysis, refined emergency detection, and improved tone,
+  you MUST replace the ENTIRE `get_doctor_persona_prompt` function in your `app.py`
+  file with the new, more advanced version below.
+
+  -------------------------------------------------------------------------
+
+  def get_doctor_persona_prompt(user_details, local_predictions, image_provided):
+    """
+    Constructs a detailed system prompt for the Gemini model to adopt an empathetic,
+    professional, and methodical doctor persona with advanced features.
+    """
+    details_text = "The user has not provided their initial details yet."
+    if user_details and user_details.get('info'):
+        location = user_details.get('location', 'N/A')
+        info = user_details.get('info')
+        details_text = f"The user's details are: {info}. They are located in {location}."
+    
+    predictions_text = "No initial analysis has been performed yet."
+    if local_predictions:
+        predictions_list = [f"- {p['disease']} (Confidence: {p['confidence']:.0%})" for p in local_predictions]
+        predictions_text = "My initial diagnostic analysis based on their main symptoms suggests:\n" + "\n".join(predictions_list)
+
+    image_context = "The user has not provided an image."
+    if image_provided:
+        image_context = "The user has provided an image of their symptom. You MUST acknowledge the image and use it to ask a more specific follow-up question."
+
+    return f\"\"\"
+    **SYSTEM INSTRUCTION: ACT AS A MEDICAL PROFESSIONAL**
+
+    **Your Persona:** You are "Dr. Aether," an experienced, empathetic, and professional AI physician. Your tone should be reassuring and caring. Use phrases like "I understand this must be worrying," or "Thank you for sharing that, let's explore this further."
+
+    **User Context:**
+    - {details_text}
+    - {image_context}
+    - Current Location: Panipat, Haryana, India. Current Date: Thursday, September 4, 2025.
+
+    **Initial Diagnostic Analysis:**
+    {predictions_text}
+    You must use this analysis as a starting point for your questions.
+
+    **CRITICAL Directives & Conversational Flow:**
+    1.  **Refined Emergency Detection:** Analyze the user's message for context, not just keywords. If the message clearly indicates a life-threatening situation (e.g., "I have severe, crushing chest pain," "I cannot breathe at all," "I am bleeding uncontrollably"), your ONLY response must be `[EMERGENCY]`. Do not trigger for minor mentions or hypothetical questions.
+
+    2.  **Methodical Questioning (One at a Time):**
+        - Ask clarifying questions ONE AT A TIME to understand the situation fully.
+        - Acknowledge the user's answers with empathy before asking the next question.
+        - If an image was provided, your first question after seeing it must relate to the image. Example: "Thank you for uploading the image. Seeing the rash helps. Could you tell me if it feels warm to the touch?"
+        - Provide simple answer options using the format: `Your question text? [CHIPS: ["Option 1", "Option 2", "I'm not sure"]]`
+
+    3.  **Comprehensive Final Summary:** After 3-4 questions, provide a final summary using this EXACT format:
+        `[SUMMARY: {{
+            "recap": "A brief, empathetic summary of the user's symptoms.",
+            "possibilities": "Based on our conversation, this could suggest... (Discuss possibilities, never give a definitive diagnosis).",
+            "homeCare": [
+                "Actionable, safe home-care advice relevant to the symptoms.",
+                "Another home-care suggestion."
+            ],
+            "recommendation": "It is highly recommended you consult a doctor in Panipat within the next 24-48 hours for a proper diagnosis. (Tailor urgency based on symptoms and age).",
+            "conclusion": "I hope this has been helpful. Please remember to follow up with a healthcare professional. Is there anything else I can assist you with?"
+        }}]`
+
+    **DO NOT DEVIATE FROM THE COMMAND FORMATS. The application depends on them.**
+    \"\"\"
+*/
+
 import React, { useState, useEffect, useRef } from "react";
 import { v4 as uuidv4 } from "uuid";
 import axios from "axios";
 import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
-import { auth, provider, signInWithPopup, signOut, isFirebaseConfigured } from "./firebase";
-import { onAuthStateChanged } from "firebase/auth";
-
 
 // --- Styles ---
 const styles = {
@@ -86,7 +151,7 @@ const api = {
 };
 
 // --- SVG Icons ---
-
+const AetherLogo = () => (<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{width: '32px', height: '32px'}}><path d="M12 2L3 22H21L12 2Z" stroke="#e0e0e0" strokeWidth="1.5" /><path d="M7 15L12 5L17 15H7Z" stroke="#e0e0e0" strokeWidth="1.5" /></svg>);
 const HealthAILogo = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2L15.09 8.09L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.09L12 2Z" stroke="#38bdf8" strokeWidth="2" /><path d="M9 12H15" stroke="#38bdf8" strokeWidth="2" /><path d="M12 9V15" stroke="#38bdf8" strokeWidth="2" /></svg>);
 const SendIcon = () => (<svg style={{width: '24px', height: '24px'}} viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path></svg>);
 const PlusIcon = () => (<svg style={{width: '20px', height: '20px'}} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>);
@@ -163,408 +228,16 @@ ${summary.recommendation}
     );
 };
 
-const AetherLogo = () => (
-  <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M16 4L26 20H6L16 4Z" fill="#E6EDF3" stroke="#E6EDF3" strokeWidth="2" strokeLinejoin="round"/>
-    <path d="M12 16L16 8L20 16H12Z" fill="#0D1117" stroke="#0D1117" strokeWidth="1"/>
-  </svg>
-);
-
-const BrainGraphic = () => {
-  const nodes = [];
-  const connections = [];
-
-  // Generate more complex brain-like node positions
-  for (let i = 0; i < 120; i++) {
-    const angle = (i / 120) * Math.PI * 5;
-    const radius = 160 + Math.sin(angle * 2.5) * 60 + Math.cos(angle * 1.5) * 25;
-    const x = Math.cos(angle) * radius + 400;
-    const y = Math.sin(angle) * radius * 0.65 + 250;
-    nodes.push({ x, y, id: i, size: 2.5 + Math.random() * 2.5 });
-  }
-
-  // Add central core nodes
-  for (let i = 0; i < 15; i++) {
-    const angle = (i / 15) * Math.PI * 2;
-    const radius = 70 + Math.random() * 50;
-    const x = Math.cos(angle) * radius + 400;
-    const y = Math.sin(angle) * radius * 0.8 + 250;
-    nodes.push({ x, y, id: i + 120, size: 3.5 + Math.random() * 2 });
-  }
-
-  // Generate more sophisticated connections
-  for (let i = 0; i < nodes.length; i++) {
-    for (let j = i + 1; j < nodes.length; j++) {
-      const dist = Math.sqrt(
-        Math.pow(nodes[i].x - nodes[j].x, 2) +
-        Math.pow(nodes[i].y - nodes[j].y, 2)
-      );
-      if (dist < 95 && Math.random() > 0.65) {
-        connections.push({
-          from: nodes[i],
-          to: nodes[j],
-          strength: 1 - (dist / 95),
-          id: `${i}-${j}`
-        });
-      }
-    }
-  }
-
-  return (
-    <div style={{
-      position: 'relative',
-      width: '800px',
-      height: '500px',
-      margin: '0 auto',
-      maxWidth: '95vw'
-    }}>
-      <svg
-        width="800"
-        height="500"
-        viewBox="0 0 800 500"
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          animation: 'float 8s ease-in-out infinite, breathe 6s ease-in-out infinite, brainGlow 4s ease-in-out infinite'
-        }}
-      >
-        <defs>
-          <radialGradient id="nodeGradient" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.9" />
-            <stop offset="30%" stopColor="#58A6FF" stopOpacity="1" />
-            <stop offset="100%" stopColor="#A371F7" stopOpacity="0.8" />
-          </radialGradient>
-          <radialGradient id="coreNodeGradient" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="#FFFFFF" />
-            <stop offset="50%" stopColor="#58A6FF" />
-            <stop offset="100%" stopColor="#1E40AF" />
-          </radialGradient>
-          <linearGradient id="lineGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#58A6FF" stopOpacity="0.8" />
-            <stop offset="50%" stopColor="#818CF8" stopOpacity="0.9" />
-            <stop offset="100%" stopColor="#A371F7" stopOpacity="0.7" />
-          </linearGradient>
-          <filter id="nodeGlow">
-            <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
-            <feMerge>
-              <feMergeNode in="coloredBlur"/>
-              <feMergeNode in="SourceGraphic"/>
-            </feMerge>
-          </filter>
-        </defs>
-
-        {connections.map((conn, i) => (
-          <line
-            key={conn.id}
-            x1={conn.from.x}
-            y1={conn.from.y}
-            x2={conn.to.x}
-            y2={conn.to.y}
-            stroke="url(#lineGradient)"
-            strokeWidth={0.5 + conn.strength * 2}
-            strokeOpacity={0.4 + conn.strength * 0.5}
-            style={{
-              animation: `neuralPulse ${3 + Math.random() * 2}s ease-in-out infinite`,
-              animationDelay: `${i * 0.03}s`
-            }}
-          />
-        ))}
-
-        {nodes.map((node, i) => (
-          <circle
-            key={node.id}
-            cx={node.x}
-            cy={node.y}
-            r={node.size}
-            fill={i >= 120 ? "url(#coreNodeGradient)" : "url(#nodeGradient)"}
-            filter="url(#nodeGlow)"
-            style={{
-              animation: `glow 3s ease-in-out infinite alternate, nodeEnergy ${2 + Math.random()}s ease-in-out infinite`,
-              animationDelay: `${i * 0.015}s`
-            }}
-          />
-        ))}
-      </svg>
-    </div>
-  );
-};
-
 const LandingPage = ({ handleLogin }) => {
-  return (
-    <div style={{
-      minHeight: '100vh',
-      backgroundColor: '#0D1117',
-      color: '#E6EDF3',
-      fontFamily: 'Inter, sans-serif'
-    }}>
-      {/* Header */}
-      <header style={{
-        backgroundColor: 'rgba(22, 27, 34, 0.3)',
-        borderBottom: '1px solid rgba(48, 54, 61, 0.3)',
-        padding: '32px clamp(24px, 5vw, 64px)',
-        maxWidth: '1440px',
-        margin: '0 auto',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <AetherLogo />
-          <div>
-            <div style={{ fontWeight: '700', fontSize: '20px', lineHeight: '1' }}>AETHER</div>
-            <div style={{ fontWeight: '400', fontSize: '20px', color: '#8B949E', lineHeight: '1' }}>HEALTH</div>
-          </div>
+    return (
+      <div style={{...styles.body, backgroundColor: '#111827', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center'}}>
+        <div>
+          <h1 style={{fontSize: '3.75rem', fontWeight: '800', letterSpacing: '-0.05em', lineHeight: '1.1'}}>Welcome to Health AI</h1>
+          <p style={{marginTop: '1rem', fontSize: '1.125rem', color: '#9ca3af'}}>Your AI-powered health assistant.</p>
+          <button style={{marginTop: '2rem', backgroundImage: 'linear-gradient(to right, #2dd4bf, #38bdf8)', color: 'white', fontWeight: 'bold', padding: '12px 32px', borderRadius: '8px', border: 'none', cursor: 'pointer'}} onClick={handleLogin}>Login to Get Started</button>
         </div>
-
-
-        <button
-          onClick={handleLogin}
-          style={{
-            border: '1px solid #30363D',
-            padding: '8px 16px',
-            borderRadius: '9999px',
-            fontSize: '16px',
-            fontWeight: '500',
-            backgroundColor: 'transparent',
-            color: '#E6EDF3',
-            cursor: 'pointer',
-            transition: 'all 0.3s ease'
-          }}
-          onMouseEnter={(e) => {
-            e.target.style.borderColor = '#58A6FF';
-            e.target.style.color = '#58A6FF';
-          }}
-          onMouseLeave={(e) => {
-            e.target.style.borderColor = '#30363D';
-            e.target.style.color = '#E6EDF3';
-          }}
-        >
-          Login
-        </button>
-      </header>
-
-      {/* Main Content Container */}
-      <main style={{
-        maxWidth: '1440px',
-        margin: '0 auto',
-        padding: 'clamp(60px, 10vw, 120px) clamp(32px, 6vw, 80px)',
-        textAlign: 'center'
-      }}>
-        {/* Hero Section */}
-        <BrainGraphic />
-
-        <h1 style={{
-          fontSize: 'clamp(36px, 8vw, 72px)',
-          fontWeight: '800',
-          textAlign: 'center',
-          margin: 'clamp(32px, 6vw, 60px) 0 clamp(24px, 4vw, 48px) 0',
-          textShadow: '0 0 30px rgba(88, 166, 255, 0.5)',
-          lineHeight: '1.1',
-          letterSpacing: '-0.02em'
-        }}>
-          Revolutionizing Health with AI
-        </h1>
-
-        <button style={{
-          backgroundColor: 'rgba(13, 17, 23, 0.5)',
-          border: '1px solid #30363D',
-          padding: '10px 20px',
-          borderRadius: '9999px',
-          fontSize: '14px',
-          fontWeight: '500',
-          color: '#E6EDF3',
-          letterSpacing: '1.5px',
-          textTransform: 'uppercase',
-          cursor: 'pointer',
-          transition: 'all 0.3s ease',
-          marginBottom: '32px'
-        }}
-        onMouseEnter={(e) => {
-          e.target.style.borderColor = '#58A6FF';
-          e.target.style.boxShadow = '0 0 20px rgba(88, 166, 255, 0.3)';
-        }}
-        onMouseLeave={(e) => {
-          e.target.style.borderColor = '#30363D';
-          e.target.style.boxShadow = 'none';
-        }}
-        onClick={handleLogin}
-        >
-          Get Started
-        </button>
-
-        {/* Carousel Indicators */}
-        <div style={{
-          display: 'flex',
-          justifyContent: 'center',
-          gap: '8px',
-          marginTop: '24px'
-        }}>
-          <div style={{
-            width: '8px',
-            height: '8px',
-            borderRadius: '50%',
-            backgroundColor: '#E6EDF3'
-          }}></div>
-          <div style={{
-            width: '8px',
-            height: '8px',
-            borderRadius: '50%',
-            backgroundColor: '#30363D'
-          }}></div>
-          <div style={{
-            width: '8px',
-            height: '8px',
-            borderRadius: '50%',
-            backgroundColor: '#30363D'
-          }}></div>
-        </div>
-      </main>
-
-      {/* Footer */}
-      <footer style={{
-        backgroundColor: 'rgba(22, 27, 34, 0.3)',
-        borderTop: '1px solid rgba(48, 54, 61, 0.3)',
-        padding: '48px',
-        marginTop: '40px'
-      }}>
-        <div style={{
-          maxWidth: '1440px',
-          margin: '0 auto',
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-          gap: 'clamp(24px, 4vw, 48px)'
-        }}>
-          {/* Logo and Description */}
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-              <svg width="24" height="24" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M16 4L26 20H6L16 4Z" fill="#58A6FF" stroke="#58A6FF" strokeWidth="2" strokeLinejoin="round"/>
-                <path d="M12 16L16 8L20 16H12Z" fill="#0D1117" stroke="#0D1117" strokeWidth="1"/>
-              </svg>
-              <div>
-                <div style={{ fontWeight: '700', fontSize: '16px', lineHeight: '1', color: '#E6EDF3' }}>AETHER</div>
-                <div style={{ fontWeight: '400', fontSize: '16px', color: '#8B949E', lineHeight: '1' }}>HEALTH</div>
-              </div>
-            </div>
-            <p style={{
-              fontSize: '14px',
-              color: '#8B949E',
-              lineHeight: '1.5',
-              margin: 0
-            }}>
-              Revolutionizing healthcare through AI-powered analysis and personalized health insights.
-            </p>
-          </div>
-
-          {/* Quick Links */}
-          <div>
-            <h4 style={{
-              fontSize: '16px',
-              fontWeight: '600',
-              color: '#E6EDF3',
-              marginBottom: '16px',
-              marginTop: 0
-            }}>Quick Links</h4>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <a href="#privacy" style={{
-                fontSize: '14px',
-                color: '#8B949E',
-                textDecoration: 'none',
-                transition: 'color 0.3s ease'
-              }}
-              onMouseEnter={(e) => e.target.style.color = '#58A6FF'}
-              onMouseLeave={(e) => e.target.style.color = '#8B949E'}
-              >Privacy Policy</a>
-              <a href="#terms" style={{
-                fontSize: '14px',
-                color: '#8B949E',
-                textDecoration: 'none',
-                transition: 'color 0.3s ease'
-              }}
-              onMouseEnter={(e) => e.target.style.color = '#58A6FF'}
-              onMouseLeave={(e) => e.target.style.color = '#8B949E'}
-              >Terms of Service</a>
-              <a href="#contact" style={{
-                fontSize: '14px',
-                color: '#8B949E',
-                textDecoration: 'none',
-                transition: 'color 0.3s ease'
-              }}
-              onMouseEnter={(e) => e.target.style.color = '#58A6FF'}
-              onMouseLeave={(e) => e.target.style.color = '#8B949E'}
-              >Contact Us</a>
-            </div>
-          </div>
-
-          {/* Developer */}
-          <div>
-            <h4 style={{
-              fontSize: '16px',
-              fontWeight: '600',
-              color: '#E6EDF3',
-              marginBottom: '16px',
-              marginTop: 0
-            }}>Developer</h4>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <a href="https://github.com/gargsatvik" target="_blank" rel="noopener noreferrer" style={{
-                fontSize: '14px',
-                color: '#8B949E',
-                textDecoration: 'none',
-                transition: 'color 0.3s ease',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px'
-              }}
-              onMouseEnter={(e) => e.target.style.color = '#58A6FF'}
-              onMouseLeave={(e) => e.target.style.color = '#8B949E'}
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
-                </svg>
-                GitHub Profile
-              </a>
-              <a href="https://github.com/gargsatvik/Health-app" target="_blank" rel="noopener noreferrer" style={{
-                fontSize: '14px',
-                color: '#8B949E',
-                textDecoration: 'none',
-                transition: 'color 0.3s ease',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px'
-              }}
-              onMouseEnter={(e) => e.target.style.color = '#58A6FF'}
-              onMouseLeave={(e) => e.target.style.color = '#8B949E'}
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
-                </svg>
-                Source Code
-              </a>
-            </div>
-          </div>
-        </div>
-
-        {/* Copyright */}
-        <div style={{
-          maxWidth: '1280px',
-          margin: '32px auto 0',
-          paddingTop: '32px',
-          borderTop: '1px solid #30363D',
-          textAlign: 'center'
-        }}>
-          <p style={{
-            fontSize: '14px',
-            fontWeight: '400',
-            color: '#8B949E',
-            margin: 0
-          }}>
-            © 2025 Aether Health. All rights reserved. Built with ❤️ for better healthcare.
-          </p>
-        </div>
-      </footer>
-    </div>
-  );
+      </div>
+    );
 };
   
 const InitialAnalysisCard = ({ predictions }) => {
@@ -686,48 +359,13 @@ function App() {
         const hasAccepted = localStorage.getItem('acceptedDisclaimer');
         if (!hasAccepted) setShowDisclaimer(true);
         const styleSheet = document.createElement("style");
-        styleSheet.innerText = `
-            @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-            @keyframes pulse {
-                0%, 100% { opacity: 0.6; }
-                50% { opacity: 1; }
-            }
-            @keyframes glow {
-                0% { opacity: 0.7; filter: brightness(1); }
-                100% { opacity: 1; filter: brightness(1.3); }
-            }
-            @keyframes float {
-                0%, 100% { transform: translateY(0px) rotate(0deg); }
-                33% { transform: translateY(-8px) rotate(1deg); }
-                66% { transform: translateY(-12px) rotate(-1deg); }
-            }
-            @keyframes breathe {
-                0%, 100% { transform: scale(1); }
-                50% { transform: scale(1.08); }
-            }
-            @keyframes neuralPulse {
-                0% { stroke-width: 1; opacity: 0.4; }
-                25% { stroke-width: 1.5; opacity: 0.7; }
-                50% { stroke-width: 2.5; opacity: 1; }
-                75% { stroke-width: 1.5; opacity: 0.7; }
-                100% { stroke-width: 1; opacity: 0.4; }
-            }
-            @keyframes nodeEnergy {
-                0%, 100% { r: 3; opacity: 0.8; }
-                50% { r: 5; opacity: 1; }
-            }
-            @keyframes brainGlow {
-                0%, 100% { filter: drop-shadow(0 0 20px rgba(88, 166, 255, 0.3)) drop-shadow(0 0 40px rgba(163, 113, 247, 0.2)); }
-                50% { filter: drop-shadow(0 0 30px rgba(88, 166, 255, 0.6)) drop-shadow(0 0 60px rgba(163, 113, 247, 0.4)); }
-            }
-        `;
+        styleSheet.innerText = `@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`;
         document.head.appendChild(styleSheet);
         return () => { styleSheet.parentNode?.removeChild(styleSheet); };
     }, []);
 
     useEffect(() => {
-        if (!isFirebaseConfigured) { setAuthReady(true); return; }
-        const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+        const unsubscribe = auth.onAuthStateChanged((currentUser) => {
             if (currentUser) {
                 setUser(currentUser);
                 fetchUserChats(currentUser.uid);
@@ -766,7 +404,7 @@ function App() {
         } catch (error) { console.error("Failed to fetch user chats:", error); }
     };
 
-    const handleLogin = async () => { if (!isFirebaseConfigured) { alert('Login unavailable: Firebase not configured. Set VITE_FIREBASE_* environment variables.'); return; } await signInWithPopup(auth, provider).catch(console.error); };
+    const handleLogin = async () => { await signInWithPopup(auth, provider).catch(console.error); };
     const handleLogout = async () => { await signOut(auth); };
     
     const handleAcceptDisclaimer = () => {
@@ -946,3 +584,4 @@ function App() {
 }
 
 export default App;
+
