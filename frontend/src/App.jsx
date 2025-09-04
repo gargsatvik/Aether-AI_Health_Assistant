@@ -31,37 +31,28 @@ const api = {
     },
     getChats: async (userId) => (await axios.post(`${API_BASE}/get_chats`, { user_id: userId })).data || [],
     saveChat: async (userId, chatData) => await axios.post(`${API_BASE}/save_chat`, { userId, chatData }),
+    getUserProfile: async (userId) => (await axios.post(`${API_BASE}/get_profile`, { user_id: userId })).data,
+    saveUserProfile: async (userId, profileData) => await axios.post(`${API_BASE}/save_profile`, { user_id: userId, profile_data: profileData }),
 };
 
 // --- Styles ---
 const styles = {
-    // Core Palette & Typography
     colors: {
-        background: '#0a0a0a',
-        surface: '#1a1a1a',
-        primaryText: '#f5f5f5',
-        secondaryText: '#a3a3a3',
-        accent: '#2563eb',
-        accentHover: '#1d4ed8',
-        glow: 'rgba(37, 99, 235, 0.5)',
-        subtleBorder: '#262626',
+        background: '#0a0a0a', surface: '#1a1a1a', primaryText: '#f5f5f5',
+        secondaryText: '#a3a3a3', accent: '#2563eb', accentHover: '#1d4ed8',
+        glow: 'rgba(37, 99, 235, 0.5)', subtleBorder: '#262626',
     },
     fontFamily: "'Roboto', 'Inter', system-ui, -apple-system, sans-serif",
-    // Global & Body
     body: {
-        margin: 0,
-        fontFamily: "'Roboto', 'Inter', system-ui, -apple-system, sans-serif",
-        backgroundColor: '#0a0a0a',
-        color: '#a3a3a3',
-        height: '100vh',
-        overflow: 'hidden',
+        margin: 0, fontFamily: "'Roboto', 'Inter', system-ui, -apple-system, sans-serif",
+        backgroundColor: '#0a0a0a', color: '#a3a3a3', height: '100vh', overflow: 'hidden',
     },
     appContainer: { display: 'flex', height: '100vh' },
     mainContent: {
         flex: 1, display: 'flex', flexDirection: 'column', height: '100vh',
-        transition: 'margin-left 0.3s ease-in-out', backgroundColor: '#0a0a0a',
+        transition: 'margin-left 0.3s ease-in-out', backgroundColor: 'transparent',
+        position: 'relative',
     },
-    // Landing Page
     landingContainer: {
         backgroundColor: '#0a0a0a', color: '#a3a3a3', height: '100vh',
         display: 'flex', flexDirection: 'column', boxSizing: 'border-box',
@@ -79,9 +70,9 @@ const styles = {
         justifyContent: 'center', textAlign: 'center', padding: '32px',
         gap: '24px', position: 'relative', overflow: 'hidden'
     },
-    landingCanvas: {
+    backgroundCanvas: {
         position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
-        zIndex: 0, opacity: 0.6
+        zIndex: 0, opacity: 0.2
     },
     landingContent: { zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' },
     landingTitle: {
@@ -123,7 +114,7 @@ const styles = {
         transition: 'background-color 0.2s, color 0.2s', cursor: 'pointer',
     },
     chatListItemActive: { backgroundColor: '#262626', color: '#f5f5f5' },
-    chatScreen: { display: 'flex', flexDirection: 'column', height: '100%' },
+    chatScreen: { display: 'flex', flexDirection: 'column', height: '100%', zIndex: 1, backgroundColor: 'rgba(10,10,10,0.5)', backdropFilter: 'blur(2px)' },
     chatMessagesContainer: { flexGrow: 1, padding: '32px', overflowY: 'auto' },
     messageBubble: {
         padding: '1rem 1.5rem', borderRadius: '1.5rem', maxWidth: '75%',
@@ -134,7 +125,7 @@ const styles = {
         borderRadius: '1.5rem 1.5rem 0.25rem 1.5rem', alignSelf: 'flex-end',
     },
     modelMessage: {
-        backgroundColor: '#1E1E1E',
+        backgroundColor: 'rgba(30, 30, 30, 0.8)',
         borderRadius: '1.5rem 1.5rem 1.5rem 0.25rem',
     },
     chatInput: {
@@ -146,10 +137,6 @@ const styles = {
         display: 'flex', gap: '0.5rem', alignItems: 'center',
         padding: '0 32px 32px 32px'
     },
-    iconButton: {
-        background: 'none', border: 'none', color: '#a3a3a3',
-        cursor: 'pointer', padding: '0.5rem',
-    },
     sendButton: {
         padding: '12px', borderRadius: '8px', color: '#f5f5f5',
         border: 'none', cursor: 'pointer', backgroundColor: '#2563eb',
@@ -158,82 +145,25 @@ const styles = {
     },
     analysisCard: {
         padding: '1rem', margin: '0 32px 1rem', border: '1px solid #262626',
-        borderRadius: '12px', backgroundColor: '#1a1a1a',
-    },
-    analysisTitle: {
-        display: 'flex', alignItems: 'center', gap: '0.5rem',
-        fontSize: '14px', fontWeight: '600', color: '#a3a3a3',
-        marginBottom: '0.75rem',
+        borderRadius: '12px', backgroundColor: 'rgba(26, 26, 26, 0.8)',
     },
     locationDisplay: {
         padding: '1rem 1.5rem', display: 'flex', alignItems: 'center',
         gap: '0.75rem', fontSize: '14px', color: '#a3a3a3',
         borderTop: '1px solid #262626',
     },
-    modalBackdrop: {
-        position: 'fixed', inset: 0, backgroundColor: 'rgba(0, 0, 0, 0.7)',
-        zIndex: 100, display: 'flex', alignItems: 'center',
-        justifyContent: 'center',
+    // Privacy Page Specific Styles
+    privacyContainer: {
+        height: '100vh', display: 'flex', flexDirection: 'column',
     },
-    modalContent: {
-        backgroundColor: '#1a1a1a', padding: '2rem', borderRadius: '12px',
-        width: '90%', maxWidth: '450px', color: '#f5f5f5',
-        border: '1px solid #262626',
+    privacyContent: {
+        maxWidth: '800px', margin: '0 auto', padding: '2rem',
+        flex: 1, overflowY: 'auto'
     },
-    modalTitle: {
-        fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '1rem',
-        display: 'flex', alignItems: 'center', gap: '0.5rem',
-    },
-    modalButton: {
-        padding: '12px 24px', width: '100%', backgroundColor: '#2563eb',
-        color: '#f5f5f5', fontWeight: '500', border: 'none',
-        borderRadius: '8px', cursor: 'pointer', marginTop: '1.5rem',
-        transition: 'background-color 0.2s ease',
-    },
-    suggestionChipsContainer: {
-        display: 'flex', flexWrap: 'wrap', gap: '0.5rem',
-        padding: '0 32px 1rem',
-    },
-    suggestionChip: {
-        padding: '0.5rem 1rem', backgroundColor: '#1E1E1E',
-        border: '1px solid #262626', borderRadius: '9999px',
-        cursor: 'pointer', color: '#a3a3a3',
-        transition: 'background-color 0.2s',
-    },
-    summaryCard: {
-        margin: '0 32px 1rem', padding: '1.5rem', backgroundColor: '#1a1a1a',
-        border: '1px solid #262626', borderRadius: '12px',
-    },
-    summaryTitle: {
-        fontSize: '1.125rem', fontWeight: 'bold', color: '#f5f5f5',
-        marginBottom: '1rem',
-    },
-    summarySection: { marginBottom: '1rem' },
-    summaryLabel: { fontWeight: '600', color: '#a3a3a3', marginBottom: '0.25rem' },
-    copyButton: {
-        float: 'right', background: 'none', border: '1px solid #262626',
-        color: '#a3a3a3', borderRadius: '4px',
-        padding: '0.25rem 0.5rem', cursor: 'pointer',
-    },
-    imagePreviewContainer: {
-        position: 'relative', width: '60px', height: '60px',
-        marginRight: '0.5rem',
-    },
-    imagePreview: {
-        width: '100%', height: '100%', borderRadius: '8px',
-        objectFit: 'cover',
-    },
-    removeImageButton: {
-        position: 'absolute', top: '-5px', right: '-5px',
-        background: '#1E1E1E', color: 'white',
-        border: '1px solid #262626', borderRadius: '50%',
-        width: '20px', height: '20px', display: 'flex',
-        alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
-    },
-    uploadedImageInChat: {
-        maxWidth: '100%', maxHeight: '300px', borderRadius: '12px',
-        marginTop: '0.5rem',
-    },
+    privacyTitle: { color: '#f5f5f5', fontSize: '2.5rem', marginBottom: '1rem' },
+    privacySectionTitle: { color: '#f5f5f5', fontSize: '1.5rem', marginTop: '2rem', marginBottom: '1rem' },
+    privacyText: { lineHeight: 1.7 },
+    privacyLink: { color: '#2563eb', textDecoration: 'none' }
 };
 
 // --- Helper Hook ---
@@ -260,11 +190,8 @@ const SendIcon = () => <svg style={{width:'20px',height:'20px'}} viewBox="0 0 24
 const PlusIcon = () => <svg style={{width:'20px',height:'20px'}} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>;
 const SignOutIcon = () => <svg style={{width:'20px',height:'20px'}} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>;
 const MenuIcon = () => <svg style={{width:'24px',height:'24px'}} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>;
-const XIcon = () => <svg style={{width:'24px',height:'24px'}} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>;
 const BrainCircuitIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a10 10 0 0 0-10 10c0 1.85.54 3.58 1.48 5.04M12 22a10 10 0 0 0 10-10c0-1.85-.54-3.58-1.48-5.04M12 2v20m6.5-15.5-.42.42c-1.33 1.33-2.08 3.12-2.08 4.95v.21c0 1.83.75 3.62 2.08 4.95l.42.42m0-15-.42-.42c-1.33-1.33-2.08-3.12-2.08-4.95v-.21c0-1.83.75-3.62 2.08-4.95l.42-.42m-13 15 .42.42c1.33 1.33 2.08 3.12 2.08 4.95v.21c0 1.83-.75 3.62-2.08 4.95l-.42.42m0-15 .42-.42c1.33-1.33-2.08-3.12-2.08-4.95v-.21c0-1.83-.75-3.62-2.08-4.95l-.42-.42" /></svg>;
 const LocationIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" /><circle cx="12" cy="10" r="3" /></svg>;
-const WarningIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{color:'#f87171'}}><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>;
-const PaperclipIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" /></svg>;
 
 // --- Helper Components ---
 const NeuralNetworkAnimation = () => {
@@ -287,7 +214,7 @@ const NeuralNetworkAnimation = () => {
                 canvas.height = canvas.parentElement.offsetHeight;
             }
         };
-        let particles = []; const particleCount = 80; // Increased particle count
+        let particles = []; const particleCount = 80;
         class Particle {
             constructor() {
                 this.x = Math.random() * (canvas.width || 0); this.y = Math.random() * (canvas.height || 0);
@@ -297,34 +224,24 @@ const NeuralNetworkAnimation = () => {
                 this.radius = Math.random() * 1.5 + 1;
             }
             update() {
-                // Mouse interaction
                 if (mouse.current.x !== undefined) {
                     let dx = mouse.current.x - this.x;
                     let dy = mouse.current.y - this.y;
                     let distance = Math.hypot(dx, dy);
-                    let forceDirectionX = dx / distance;
-                    let forceDirectionY = dy / distance;
-                    let maxDistance = mouse.current.radius;
-                    let force = (maxDistance - distance) / maxDistance;
-                    let directionX = forceDirectionX * force * this.density;
-                    let directionY = forceDirectionY * force * this.density;
-
                     if (distance < mouse.current.radius) {
-                        this.x -= directionX * 0.2; // Repel effect
+                        let forceDirectionX = dx / distance;
+                        let forceDirectionY = dy / distance;
+                        let maxDistance = mouse.current.radius;
+                        let force = (maxDistance - distance) / maxDistance;
+                        let directionX = forceDirectionX * force * this.density;
+                        let directionY = forceDirectionY * force * this.density;
+                        this.x -= directionX * 0.2;
                         this.y -= directionY * 0.2;
                     } else {
-                         if (this.x !== this.baseX) {
-                            let dx = this.x - this.baseX;
-                            this.x -= dx/10;
-                        }
-                        if (this.y !== this.baseY) {
-                            let dy = this.y - this.baseY;
-                            this.y -= dy/10;
-                        }
+                         if (this.x !== this.baseX) this.x -= (this.x - this.baseX) / 10;
+                         if (this.y !== this.baseY) this.y -= (this.y - this.baseY) / 10;
                     }
                 }
-
-                // Standard movement
                 this.x += this.vx; this.y += this.vy;
                 if (this.x < 0 || this.x > canvas.width) this.vx *= -1;
                 if (this.y < 0 || this.y > canvas.height) this.vy *= -1;
@@ -338,12 +255,11 @@ const NeuralNetworkAnimation = () => {
             particles = []; for (let i = 0; i < particleCount; i++) particles.push(new Particle());
         };
         const connect = () => {
-            let opacityValue = 1;
             for (let i = 0; i < particles.length; i++) {
                 for (let j = i; j < particles.length; j++) {
                     const distance = Math.hypot(particles[i].x - particles[j].x, particles[i].y - particles[j].y);
-                    if (distance < 100) { // Reduced connection distance for denser look
-                        opacityValue = 1 - (distance/100);
+                    if (distance < 100) { 
+                        const opacityValue = 1 - (distance/100);
                         ctx.strokeStyle = `rgba(37, 99, 235, ${opacityValue * 0.4})`; ctx.lineWidth = 1;
                         ctx.beginPath(); ctx.moveTo(particles[i].x, particles[i].y); ctx.lineTo(particles[j].x, particles[j].y); ctx.stroke();
                     }
@@ -369,37 +285,7 @@ const NeuralNetworkAnimation = () => {
             cancelAnimationFrame(animationFrameId); clearTimeout(timeoutId);
         };
     }, []);
-    return <canvas ref={canvasRef} style={styles.landingCanvas} />;
-};
-const InitialDisclaimerModal = ({ onAccept }) => (
-    <div style={styles.modalBackdrop}>
-        <div style={styles.modalContent}>
-            <h2 style={styles.modalTitle}><WarningIcon /> Important Disclaimer</h2>
-            <p style={{color: styles.colors.secondaryText, lineHeight: 1.5}}>Aether is an AI-powered assistant and is not a substitute for professional medical advice, diagnosis, or treatment. Always seek the advice of your physician or other qualified health provider with any questions you may have regarding a medical condition.</p>
-            <p style={{color: styles.colors.secondaryText, lineHeight: 1.5}}>If you are experiencing a medical emergency, please call your local emergency services immediately.</p>
-            <button style={styles.modalButton} onClick={onAccept}>I Understand and Accept</button>
-        </div>
-    </div>
-);
-const SuggestionChips = ({ chips, onChipClick }) => (
-    <div style={styles.suggestionChipsContainer}>
-        {chips.map((chip, index) => <button key={index} style={styles.suggestionChip} onClick={() => onChipClick(chip)}>{chip}</button>)}
-    </div>
-);
-const ChatSummaryCard = ({ summary }) => {
-    const summaryText = `**Symptom Recap:**\n${summary.recap}\n\n**Possible Causes:**\n${summary.possibilities}\n\n**Home-Care Suggestions:**\n${summary.homeCare.map(item => `- ${item}`).join('\n')}\n\n**Doctor's Recommendation:**\n${summary.recommendation}`.trim();
-    const handleCopy = () => navigator.clipboard.writeText(summaryText);
-    return (
-        <div style={styles.summaryCard}>
-            <button style={styles.copyButton} onClick={handleCopy}>Copy</button>
-            <h3 style={styles.summaryTitle}>Consultation Summary</h3>
-            <div style={styles.summarySection}><p style={styles.summaryLabel}>Symptom Recap</p><p>{summary.recap}</p></div>
-            <div style={styles.summarySection}><p style={styles.summaryLabel}>Possible Causes</p><p>{summary.possibilities}</p></div>
-            <div style={styles.summarySection}><p style={styles.summaryLabel}>Home-Care Suggestions</p><ul style={{margin: 0, paddingLeft: '20px'}}>{summary.homeCare.map((item, i) => <li key={i}>{item}</li>)}</ul></div>
-            <div style={styles.summarySection}><p style={styles.summaryLabel}>Recommendation</p><p style={{fontWeight: 'bold'}}>{summary.recommendation}</p></div>
-            <p>{summary.conclusion}</p>
-        </div>
-    );
+    return <canvas ref={canvasRef} style={styles.backgroundCanvas} />;
 };
 const LandingPage = ({ handleLogin }) => (
     <div style={styles.landingContainer}>
@@ -497,17 +383,59 @@ const ChatMessage = ({ message }) => {
         <div style={{ display:'flex', margin:'1rem 0', gap:'12px', justifyContent: isUser ? "flex-end" : "flex-start" }}>
             {!isUser && <div style={{width:'32px',height:'32px',backgroundColor:'#1E1E1E',borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><AetherLogoSVG /></div>}
             <div style={{...styles.messageBubble, ...(isUser ? styles.userMessage : styles.modelMessage)}}>
-                <p style={{ margin: 0 }} dangerouslySetInnerHTML={{ __html: message.content.replace(/\*([^*]+)\*/g, '<b>$1</b>').replace(/\n/g, '<br />') }} />
-                {message.image && <img src={message.image} alt="Symptom" style={styles.uploadedImageInChat} />}
+                <p style={{ margin: 0 }}>{message.content}</p>
             </div>
         </div>
     );
 };
 const WelcomeScreen = ({ onNewChat }) => (
-    <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',height:'100%',textAlign:'center',padding:'1rem'}}>
+    <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',height:'100%',textAlign:'center',padding:'1rem', zIndex: 1}}>
         <AetherLogoSVG />
         <h2 style={{fontSize:'24px',fontWeight:400,color:'#a3a3a3',marginTop:'1rem',marginBottom:'1.5rem'}}>Welcome to Aether</h2>
         <button onClick={onNewChat} style={styles.sidebarNewChatBtn}>Start New Chat</button>
+    </div>
+);
+
+// --- NEW Privacy Policy Page Component ---
+const PrivacyPolicyPage = () => (
+    <div style={styles.privacyContainer}>
+        <header style={{...styles.landingHeader, position: 'relative', width: 'auto'}}>
+            <YourLogo />
+            <a href="/" style={{...styles.sidebarNewChatBtn, backgroundColor: 'transparent', border: `1px solid ${styles.colors.subtleBorder}`, color: styles.colors.primaryText, textDecoration: 'none' }}>Back to Home</a>
+        </header>
+        <div style={styles.privacyContent}>
+            <h1 style={styles.privacyTitle}>Privacy Policy for Aether</h1>
+            <p style={styles.privacyText}><strong>Last Updated:</strong> September 4, 2025</p>
+            <p style={styles.privacyText}>This Privacy Policy describes how Aether ("we," "us," or "our") collects, uses, and discloses your information when you use our application.</p>
+            
+            <h2 style={styles.privacySectionTitle}>1. Information We Collect</h2>
+            <p style={styles.privacyText}>We collect several types of information to provide and improve our service to you:
+                <ul>
+                    <li><strong>Personal Information:</strong> When you sign in using Google, we receive your name, email address, and profile picture as provided by Google's authentication service.</li>
+                    <li><strong>Health & Symptom Data:</strong> We collect the symptoms and health-related information you voluntarily provide in your conversations with the Aether assistant.</li>
+                    <li><strong>Location Information:</strong> With your permission, we collect your approximate geographical location to provide more contextually relevant analysis.</li>
+                    <li><strong>Usage Data:</strong> We may collect information on how the service is accessed and used, such as your IP address and browser type.</li>
+                </ul>
+            </p>
+
+            <h2 style={styles.privacySectionTitle}>2. How We Use Your Information</h2>
+            <p style={styles.privacyText}>
+                <ul>
+                    <li><strong>To Provide and Maintain Our Service:</strong> Your symptom and health data are sent to Google's Gemini API to generate responses from the AI assistant.</li>
+                    <li><strong>To Manage Your Account:</strong> We use Google Authentication to create and manage your user account.</li>
+                    <li><strong>To Store Your Data:</strong> Your chat history is securely stored in Google's Firebase Firestore database to allow you to access past conversations.</li>
+                </ul>
+            </p>
+
+            <h2 style={styles.privacySectionTitle}>3. Data Sharing and Disclosure</h2>
+             <p style={styles.privacyText}>We do not sell or rent your personal data to third parties. Your data is shared with our third-party service providers to facilitate our service, including Google (for Authentication, Firestore, and the Gemini API). You can review <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" style={styles.privacyLink}>Google's Privacy Policy here</a>.</p>
+
+            <h2 style={styles.privacySectionTitle}>4. Data Security</h2>
+            <p style={styles.privacyText}>The security of your data is important to us. We use industry-standard measures, including encryption provided by Google Cloud services, to protect your information. However, no method of transmission over the Internet is 100% secure.</p>
+
+            <h2 style={styles.privacySectionTitle}>5. Contact Us</h2>
+            <p style={styles.privacyText}>If you have any questions about this Privacy Policy, please contact us at [Your Contact Email].</p>
+        </div>
     </div>
 );
 
@@ -523,22 +451,12 @@ function App() {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [authReady, setAuthReady] = useState(false);
     const [userLocation, setUserLocation] = useState('Locating...');
-    const [activeChatHasPrediction, setActiveChatHasPrediction] = useState(false);
-    const [showDisclaimer, setShowDisclaimer] = useState(false);
-    const [suggestionChips, setSuggestionChips] = useState([]);
-    const [chatSummary, setChatSummary] = useState(null);
-    const [isChatConcluded, setIsChatConcluded] = useState(false);
-    const [imageFile, setImageFile] = useState(null);
-    const [imagePreview, setImagePreview] = useState(null);
     
     const isDesktop = useMediaQuery('(min-width: 1024px)');
     const chatEndRef = useRef(null);
-    const fileInputRef = useRef(null);
 
     useEffect(() => {
         Object.assign(document.body.style, styles.body);
-        const hasAccepted = localStorage.getItem('acceptedDisclaimer');
-        if (!hasAccepted) setShowDisclaimer(true);
         const styleSheet = document.createElement("style");
         styleSheet.innerText = `@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Inter:wght@600;700&display=swap'); @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`;
         document.head.appendChild(styleSheet);
@@ -546,9 +464,13 @@ function App() {
     }, []);
 
     useEffect(() => {
-        const unsubscribe = auth.onAuthStateChanged((currentUser) => {
-            if (currentUser) { setUser(currentUser); fetchUserChats(currentUser.uid); } 
-            else { setUser(null); setChats([]); setActiveChatId(null); setMessages([]); }
+        const unsubscribe = auth.onAuthStateChanged(async (currentUser) => {
+            if (currentUser) {
+                setUser(currentUser);
+                fetchUserChats(currentUser.uid);
+            } else {
+                setUser(null); setChats([]); setActiveChatId(null); setMessages([]);
+            }
             setAuthReady(true);
         });
         return () => unsubscribe();
@@ -571,7 +493,7 @@ function App() {
 
     useEffect(() => {
         chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, [messages, chatSummary]);
+    }, [messages]);
 
     const fetchUserChats = async (uid) => {
         try {
@@ -583,158 +505,91 @@ function App() {
     const handleLogin = async () => { await signInWithPopup(auth, provider).catch(console.error); };
     const handleLogout = async () => { await signOut(auth); };
     
-    const handleAcceptDisclaimer = () => {
-        localStorage.setItem('acceptedDisclaimer', 'true');
-        setShowDisclaimer(false);
-    };
-    
     const startNewChat = () => {
         setActiveChatId(uuidv4());
-        setMessages([{ role: 'model', content: "Hello! To provide a more personalized analysis, please tell me your name, age, and sex.\n\nFor example: *I'm Alex, 35, Male.*" }]);
-        setLocalPredictions([]); setUserInput(""); setIsSidebarOpen(false); setActiveChatHasPrediction(false);
-        setSuggestionChips([]); setChatSummary(null); setIsChatConcluded(false); setImageFile(null); setImagePreview(null);
+        setMessages([]);
+        setLocalPredictions([]); 
+        setUserInput(""); 
+        setIsSidebarOpen(false);
     };
 
     const handleSelectChat = (chat) => {
-        setActiveChatId(chat.id); setMessages(chat.messages);
-        const preds = chat.localPredictions || []; setLocalPredictions(preds);
-        setActiveChatHasPrediction(preds.length > 0); setChatSummary(chat.summary || null);
-        setIsChatConcluded(!!chat.summary); setSuggestionChips([]); setIsSidebarOpen(false);
+        setActiveChatId(chat.id); 
+        setMessages(chat.messages);
+        setLocalPredictions(chat.localPredictions || []); 
+        setIsSidebarOpen(false);
     };
 
-    const handleChipClick = (chipText) => { handleSendMessage(null, chipText); };
+    const handleSendMessage = async (e) => {
+        e.preventDefault();
+        if (!userInput.trim() || loading) return;
 
-    const handleFileChange = (e) => {
-        if (e.target.files && e.target.files[0]) {
-            const file = e.target.files[0];
-            setImageFile(file);
-            setImagePreview(URL.createObjectURL(file));
-        }
-    };
-
-    const removeImage = () => {
-        setImageFile(null); setImagePreview(null);
-        if(fileInputRef.current) fileInputRef.current.value = "";
-    };
-
-    const handleSendMessage = async (e, chipText = null) => {
-        if (e) e.preventDefault();
-        const textToSend = chipText || userInput;
-        if (!textToSend.trim() && !imageFile) return;
-
-        setLoading(true); setSuggestionChips([]);
-
-        const imageBase64 = imageFile ? await new Promise(resolve => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result);
-            reader.readAsDataURL(imageFile);
-        }) : null;
-
-        const userMessage = { role: "user", content: textToSend, image: imageBase64 };
-        setMessages(prev => [...prev, userMessage]);
-        
-        setUserInput(""); removeImage();
-
+        const userMessage = { role: "user", content: userInput };
         const updatedMessages = [...messages, userMessage];
+        setMessages(updatedMessages);
+        setUserInput("");
+        setLoading(true);
 
         try {
-            const userDetails = { location: userLocation, info: updatedMessages.find(m => m.role === 'user')?.content || userInput };
-            const isSymptomMessage = updatedMessages.filter(m => m.role === 'user').length === 2;
-            let preds = localPredictions;
-
-            if (isSymptomMessage && !activeChatHasPrediction) {
-                preds = await api.getPrediction(textToSend);
-                setLocalPredictions(preds); setActiveChatHasPrediction(true);
+            let preds = [];
+            if (updatedMessages.filter(m => m.role === 'user').length === 1) {
+                preds = await api.getPrediction(userInput);
+                setLocalPredictions(preds);
             }
-
+            
             const history = updatedMessages.map(m => ({ role: m.role, parts: [m.content] }));
-            const res = await api.chatWithAI(history, preds, userDetails, !!imageBase64);
-            let aiResponse = res.reply;
-            let finalSummary = chatSummary;
 
-            if (aiResponse.includes('[CHIPS:')) {
-                const chipMatch = aiResponse.match(/\[CHIPS: (.*?)\]/s);
-                if (chipMatch) {
-                    try { setSuggestionChips(JSON.parse(chipMatch[1])); } catch (err) { console.error("Chip JSON error:", err); }
-                    aiResponse = aiResponse.replace(chipMatch[0], '').trim();
-                }
-            } else if (aiResponse.includes('[SUMMARY:')) {
-                const summaryMatch = aiResponse.match(/\[SUMMARY: (.*)\]/s);
-                if (summaryMatch) {
-                    try {
-                        const summaryJson = JSON.parse(summaryMatch[1]);
-                        setChatSummary(summaryJson); finalSummary = summaryJson; setIsChatConcluded(true);
-                        aiResponse = "Here is a summary of our conversation.";
-                    } catch (err) { console.error("Summary JSON error:", err); }
-                }
-            } else if (aiResponse.includes('[EMERGENCY]')) {
-                aiResponse = "Based on your description, your symptoms may be serious. Please **contact your local emergency services immediately**.";
-                setIsChatConcluded(true);
-            }
-
-            const finalMessages = [...updatedMessages, { role: "model", content: aiResponse }];
+            const res = await api.chatWithAI(history, preds, userLocation); 
+            const finalMessages = [...updatedMessages, { role: "model", content: res.reply }];
             setMessages(finalMessages);
-
+            
             const chatToSave = {
                 id: activeChatId, messages: finalMessages, localPredictions: preds,
-                summary: finalSummary, timestamp: new Date().toISOString(),
-                title: finalMessages.find(m => m.role === 'user')?.content.substring(0, 40) || "New Chat"
+                timestamp: new Date().toISOString(),
+                title: finalMessages[0]?.content.substring(0, 40) || "New Chat"
             };
 
             await api.saveChat(user.uid, chatToSave);
-            
-            setChats(prevChats => {
-                const existingChatIndex = prevChats.findIndex(c => c.id === activeChatId);
-                if (existingChatIndex > -1) {
-                    const updatedChats = [...prevChats];
-                    updatedChats[existingChatIndex] = chatToSave;
-                    return updatedChats;
-                }
-                return [chatToSave, ...prevChats];
-            });
+            fetchUserChats(user.uid);
 
         } catch (err) {
             console.error("Error in chat flow:", err);
-            setMessages(prev => [...prev, { role: "model", content: "Sorry, an error occurred." }]);
+            setMessages(prev => [...prev, {role: "model", content: "Sorry, an error occurred."}]);
         } finally {
             setLoading(false);
         }
     };
 
+    // Simple routing
+    if (window.location.pathname === '/privacy') {
+        return <PrivacyPolicyPage />;
+    }
+
     if (!authReady) return <div style={styles.body}></div>;
-    if (showDisclaimer) return <InitialDisclaimerModal onAccept={handleAcceptDisclaimer} />;
+    
     if (!user) return <LandingPage handleLogin={handleLogin} />;
     
     return (
         <div style={styles.appContainer}>
             <ChatHistorySidebar user={user} chats={chats} onSelectChat={handleSelectChat} activeChatId={activeChatId} onNewChat={startNewChat} onLogout={handleLogout} isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} userLocation={userLocation} />
             <main style={{ ...styles.mainContent, marginLeft: isDesktop ? '288px' : '0' }}>
+                 <NeuralNetworkAnimation />
                 {!isDesktop && <button onClick={() => setIsSidebarOpen(true)} style={{ position:'fixed',top:'1rem',left:'1rem',zIndex:50,background:'rgba(30,41,59,0.5)',border:'none',padding:'0.5rem',borderRadius:'8px',color:'white',cursor:'pointer' }}><MenuIcon /></button>}
                 {activeChatId ? (
-                    <div style={styles.chatScreen}>
+                     <div style={styles.chatScreen}>
                         <div style={styles.chatMessagesContainer}>
                             {messages.map((msg, index) => <ChatMessage key={index} message={msg} />)}
                             <InitialAnalysisCard predictions={localPredictions} />
-                            {chatSummary && <ChatSummaryCard summary={chatSummary} />}
                             <div ref={chatEndRef} />
                         </div>
-                        {!isChatConcluded && <SuggestionChips chips={suggestionChips} onChipClick={handleChipClick} />}
                         <div style={{ borderTop: `1px solid ${styles.colors.subtleBorder}`}}>
                             <form onSubmit={handleSendMessage} style={styles.chatInputContainer}>
-                                <input type="file" ref={fileInputRef} onChange={handleFileChange} style={{ display: 'none' }} accept="image/*" />
-                                <button type="button" style={styles.iconButton} onClick={() => fileInputRef.current.click()} disabled={loading || isChatConcluded}><PaperclipIcon /></button>
-                                {imagePreview && (
-                                    <div style={styles.imagePreviewContainer}>
-                                        <img src={imagePreview} alt="Preview" style={styles.imagePreview} />
-                                        <button type="button" style={styles.removeImageButton} onClick={removeImage}>&times;</button>
-                                    </div>
-                                )}
                                 <input type="text" value={userInput} onChange={(e) => setUserInput(e.target.value)}
-                                    placeholder={isChatConcluded ? "This chat has ended." : "Describe your symptoms..."}
+                                    placeholder="Describe your symptoms..."
                                     style={styles.chatInput}
-                                    disabled={loading || isChatConcluded}
+                                    disabled={loading}
                                 />
-                                <button type="submit" style={styles.sendButton} disabled={loading || isChatConcluded}>
+                                <button type="submit" style={styles.sendButton} disabled={loading}>
                                     {loading ? <div style={{width:'20px',height:'20px',border:'2px solid #a3a3a3',borderTopColor:'#f5f5f5',borderRadius:'50%',animation:'spin 1s linear infinite'}} /> : <SendIcon />}
                                 </button>
                             </form>
