@@ -37,11 +37,11 @@ const api = {
 const styles = {
     // Core Palette & Typography
     colors: {
-        background: '#0a0a0a', // Darker background
-        surface: '#1a1a1a',   // Contrasting surface for header/footer
-        primaryText: '#f5f5f5', // Softer white
+        background: '#0a0a0a',
+        surface: '#1a1a1a',
+        primaryText: '#f5f5f5',
         secondaryText: '#a3a3a3',
-        accent: '#2563eb', // A professional blue accent
+        accent: '#2563eb',
         accentHover: '#1d4ed8',
         glow: 'rgba(37, 99, 235, 0.5)',
         subtleBorder: '#262626',
@@ -99,7 +99,6 @@ const styles = {
         padding: '14px 28px', borderRadius: '8px', border: 'none',
         cursor: 'pointer', transition: 'background-color 0.2s ease', fontSize: '1rem',
     },
-    // --- NEW --- Feature Section Styles
     featureSection: {
         width: '100%', padding: '60px 0', zIndex: 1, backgroundColor: '#0a0a0a'
     },
@@ -117,8 +116,6 @@ const styles = {
     featureText: {
         color: '#a3a3a3', fontSize: '0.95rem', lineHeight: 1.6, margin: 0
     },
-
-    // Component Styling
     sidebar: {
         position: 'fixed', top: 0, left: 0, height: '100%', width: '288px',
         backgroundColor: '#121212', borderRight: '1px solid #262626',
