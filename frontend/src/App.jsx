@@ -31,7 +31,6 @@ const api = {
     },
     getChats: async (userId) => (await axios.post(`${API_BASE}/get_chats`, { user_id: userId })).data || [],
     saveChat: async (userId, chatData) => await axios.post(`${API_BASE}/save_chat`, { userId, chatData }),
-    // --- NEW API Endpoints for User Profiles ---
     getUserProfile: async (userId) => (await axios.post(`${API_BASE}/get_profile`, { user_id: userId })).data,
     saveUserProfile: async (userId, profileData) => await axios.post(`${API_BASE}/save_profile`, { user_id: userId, profile_data: profileData }),
 };
@@ -40,30 +39,21 @@ const api = {
 const styles = {
     // Core Palette & Typography
     colors: {
-        background: '#0a0a0a',
-        surface: '#1a1a1a',
-        primaryText: '#f5f5f5',
-        secondaryText: '#a3a3a3',
-        accent: '#2563eb',
-        accentHover: '#1d4ed8',
-        glow: 'rgba(37, 99, 235, 0.5)',
-        subtleBorder: '#262626',
+        background: '#0a0a0a', surface: '#1a1a1a', primaryText: '#f5f5f5',
+        secondaryText: '#a3a3a3', accent: '#2563eb', accentHover: '#1d4ed8',
+        glow: 'rgba(37, 99, 235, 0.5)', subtleBorder: '#262626',
     },
     fontFamily: "'Roboto', 'Inter', system-ui, -apple-system, sans-serif",
     // Global & Body
     body: {
-        margin: 0,
-        fontFamily: "'Roboto', 'Inter', system-ui, -apple-system, sans-serif",
-        backgroundColor: '#0a0a0a',
-        color: '#a3a3a3',
-        height: '100vh',
-        overflow: 'hidden',
+        margin: 0, fontFamily: "'Roboto', 'Inter', system-ui, -apple-system, sans-serif",
+        backgroundColor: '#0a0a0a', color: '#a3a3a3', height: '100vh', overflow: 'hidden',
     },
     appContainer: { display: 'flex', height: '100vh' },
     mainContent: {
         flex: 1, display: 'flex', flexDirection: 'column', height: '100vh',
         transition: 'margin-left 0.3s ease-in-out', backgroundColor: '#0a0a0a',
-        position: 'relative', // For background canvas
+        position: 'relative',
     },
     // Landing Page
     landingContainer: {
@@ -83,7 +73,7 @@ const styles = {
         justifyContent: 'center', textAlign: 'center', padding: '32px',
         gap: '24px', position: 'relative', overflow: 'hidden'
     },
-    backgroundCanvas: { // Shared style for landing and chat
+    backgroundCanvas: {
         position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
         zIndex: 0, opacity: 0.15
     },
@@ -195,6 +185,20 @@ const styles = {
         width: 'calc(100% - 24px)', padding: '12px', backgroundColor: '#0a0a0a',
         border: '1px solid #262626', borderRadius: '8px', color: '#f5f5f5'
     },
+    suggestionChipsContainer: {
+        display: 'flex', flexWrap: 'wrap', gap: '0.5rem', justifyContent: 'center',
+        padding: '0 32px 1rem',
+    },
+    suggestionChip: {
+        padding: '0.5rem 1rem', backgroundColor: '#1E1E1E',
+        border: '1px solid #262626', borderRadius: '9999px',
+        cursor: 'pointer', color: '#a3a3a3',
+        transition: 'background-color 0.2s',
+    },
+    summaryCard: {
+        margin: '0 32px 1rem', padding: '1.5rem', backgroundColor: 'rgba(26, 26, 26, 0.8)',
+        border: '1px solid #262626', borderRadius: '12px',
+    },
 };
 
 // --- Helper Hook ---
@@ -263,25 +267,18 @@ const NeuralNetworkAnimation = () => {
                     let dx = mouse.current.x - this.x;
                     let dy = mouse.current.y - this.y;
                     let distance = Math.hypot(dx, dy);
-                    let forceDirectionX = dx / distance;
-                    let forceDirectionY = dy / distance;
-                    let maxDistance = mouse.current.radius;
-                    let force = (maxDistance - distance) / maxDistance;
-                    let directionX = forceDirectionX * force * this.density;
-                    let directionY = forceDirectionY * force * this.density;
-
                     if (distance < mouse.current.radius) {
+                        let forceDirectionX = dx / distance;
+                        let forceDirectionY = dy / distance;
+                        let maxDistance = mouse.current.radius;
+                        let force = (maxDistance - distance) / maxDistance;
+                        let directionX = forceDirectionX * force * this.density;
+                        let directionY = forceDirectionY * force * this.density;
                         this.x -= directionX * 0.2;
                         this.y -= directionY * 0.2;
                     } else {
-                         if (this.x !== this.baseX) {
-                            let dx = this.x - this.baseX;
-                            this.x -= dx/10;
-                        }
-                        if (this.y !== this.baseY) {
-                            let dy = this.y - this.baseY;
-                            this.y -= dy/10;
-                        }
+                         if (this.x !== this.baseX) this.x -= (this.x - this.baseX) / 10;
+                         if (this.y !== this.baseY) this.y -= (this.y - this.baseY) / 10;
                     }
                 }
                 this.x += this.vx; this.y += this.vy;
@@ -297,12 +294,11 @@ const NeuralNetworkAnimation = () => {
             particles = []; for (let i = 0; i < particleCount; i++) particles.push(new Particle());
         };
         const connect = () => {
-            let opacityValue = 1;
             for (let i = 0; i < particles.length; i++) {
                 for (let j = i; j < particles.length; j++) {
                     const distance = Math.hypot(particles[i].x - particles[j].x, particles[i].y - particles[j].y);
                     if (distance < 100) { 
-                        opacityValue = 1 - (distance/100);
+                        const opacityValue = 1 - (distance/100);
                         ctx.strokeStyle = `rgba(37, 99, 235, ${opacityValue * 0.4})`; ctx.lineWidth = 1;
                         ctx.beginPath(); ctx.moveTo(particles[i].x, particles[i].y); ctx.lineTo(particles[j].x, particles[j].y); ctx.stroke();
                     }
@@ -347,10 +343,7 @@ const UserDetailsModal = ({ user, onSave, loading }) => {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        if (!name.trim() || !age.trim() || !sex.trim()) {
-            alert("Please fill out all fields.");
-            return;
-        }
+        if (!name.trim() || !age.trim() || !sex.trim()) { alert("Please fill out all fields."); return; }
         onSave({ name, age, sex });
     };
 
@@ -362,18 +355,9 @@ const UserDetailsModal = ({ user, onSave, loading }) => {
                     Please provide a few details to help us personalize your experience.
                 </p>
                 <form onSubmit={handleSubmit}>
-                    <div style={styles.inputGroup}>
-                        <label style={styles.inputLabel}>Name</label>
-                        <input type="text" value={name} onChange={(e) => setName(e.target.value)} style={styles.textInput} />
-                    </div>
-                    <div style={styles.inputGroup}>
-                        <label style={styles.inputLabel}>Age</label>
-                        <input type="number" value={age} onChange={(e) => setAge(e.target.value)} style={styles.textInput} />
-                    </div>
-                    <div style={styles.inputGroup}>
-                        <label style={styles.inputLabel}>Sex</label>
-                        <input type="text" value={sex} onChange={(e) => setSex(e.target.value)} style={styles.textInput} />
-                    </div>
+                    <div style={styles.inputGroup}><label style={styles.inputLabel}>Name</label><input type="text" value={name} onChange={(e) => setName(e.target.value)} style={styles.textInput} /></div>
+                    <div style={styles.inputGroup}><label style={styles.inputLabel}>Age</label><input type="number" value={age} onChange={(e) => setAge(e.target.value)} style={styles.textInput} /></div>
+                    <div style={styles.inputGroup}><label style={styles.inputLabel}>Sex</label><input type="text" value={sex} onChange={(e) => setSex(e.target.value)} style={styles.textInput} /></div>
                     <button style={styles.modalButton} disabled={loading}>{loading ? 'Saving...' : 'Save and Continue'}</button>
                 </form>
             </div>
@@ -621,10 +605,9 @@ function App() {
             }
             
             const history = updatedMessages.map(m => ({ role: m.role, parts: [m.content] }));
-            // Pass user profile details to the AI
             const userDetails = { ...userProfile, location: userLocation };
 
-            const res = await api.chatWithAI(history, preds, userDetails, false); // Assuming no image for now
+            const res = await api.chatWithAI(history, preds, userDetails, false); 
             const finalMessages = [...updatedMessages, { role: "model", content: res.reply }];
             setMessages(finalMessages);
             
