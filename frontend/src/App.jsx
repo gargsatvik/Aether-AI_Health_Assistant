@@ -5,17 +5,14 @@ import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
-// IMPORTANT: The 'logo.png' file should be in the 'src/assets' directory for this import to work.
-import logoUrl from './assets/logo.png';
-
 // --- Firebase & API Layer (Defined before Components) ---
 const firebaseConfig = {
-    apiKey: import.meta.env.VITE_API_KEY,
-    authDomain: import.meta.env.VITE_AUTH_DOMAIN,
-    projectId: import.meta.env.VITE_PROJECT_ID,
-    storageBucket: import.meta.env.VITE_STORAGE_BUCKET,
-    messagingSenderId: import.meta.env.VITE_MESSAGING_SENDER_ID,
-    appId: import.meta.env.VITE_APP_ID,
+    apiKey: process.env.VITE_API_KEY,
+    authDomain: process.env.VITE_AUTH_DOMAIN,
+    projectId: process.env.VITE_PROJECT_ID,
+    storageBucket: process.env.VITE_STORAGE_BUCKET,
+    messagingSenderId: process.env.VITE_MESSAGING_SENDER_ID,
+    appId: process.env.VITE_APP_ID,
 };
 
 const app = initializeApp(firebaseConfig);
@@ -23,7 +20,7 @@ const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
 getFirestore(app);
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+const API_BASE = process.env.VITE_API_BASE_URL || "http://localhost:5000";
 const api = {
     getPrediction: async (symptoms) => (await axios.post(`${API_BASE}/predict`, { symptoms })).data || [],
     chatWithAI: async (history, predictions, userDetails, image_provided) => {
@@ -152,7 +149,6 @@ const styles = {
         gap: '0.75rem', fontSize: '14px', color: '#a3a3a3',
         borderTop: '1px solid #262626',
     },
-    // Privacy Page Specific Styles
     privacyContainer: {
         height: '100vh', display: 'flex', flexDirection: 'column',
     },
@@ -182,7 +178,7 @@ const useMediaQuery = (query) => {
 const AetherLogoSVG = () => <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{width:'32px',height:'32px'}}><path d="M12 2L3 22H21L12 2Z" stroke="#e0e0e0" strokeWidth="1.5" /><path d="M7 15L12 5L17 15H7Z" stroke="#e0e0e0" strokeWidth="1.5" /></svg>;
 const YourLogo = () => (
     <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
-        <img src={logoUrl} alt="Aether Logo" style={{ height: '28px' }} />
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2L15.09 8.09L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.09L12 2Z" stroke="#a3a3a3" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M9 12H15" stroke="#a3a3a3" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M12 9V15" stroke="#a3a3a3" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
         <span style={{color: styles.colors.primaryText, fontFamily: "'Inter', sans-serif", fontWeight: '600', fontSize: '22px'}}>Aether</span>
     </div>
 );
@@ -287,7 +283,8 @@ const NeuralNetworkAnimation = () => {
     }, []);
     return <canvas ref={canvasRef} style={styles.backgroundCanvas} />;
 };
-const LandingPage = ({ handleLogin }) => (
+
+const LandingPage = ({ handleLogin, onNavigate }) => (
     <div style={styles.landingContainer}>
         <header style={styles.landingHeader}>
             <YourLogo />
@@ -318,7 +315,7 @@ const LandingPage = ({ handleLogin }) => (
         <footer style={styles.landingFooter}>
             <a href="https://github.com/gargsatvik" target="_blank" rel="noopener noreferrer" style={{fontSize: '14px', color: '#a3a3a3', textDecoration: 'none'}}>My GitHub</a>
             <a href="https://github.com/gargsatvik/Health-app" target="_blank" rel="noopener noreferrer" style={{fontSize: '14px', color: '#a3a3a3', textDecoration: 'none'}}>Project Repo</a>
-            <a href="/privacy" style={{fontSize: '14px', color: '#a3a3a3', textDecoration: 'none'}}>Privacy Policy</a>
+            <a href="#" onClick={(e) => { e.preventDefault(); onNavigate('privacy'); }} style={{fontSize: '14px', color: '#a3a3a3', textDecoration: 'none'}}>Privacy Policy</a>
         </footer>
     </div>
 );
@@ -396,46 +393,35 @@ const WelcomeScreen = ({ onNewChat }) => (
     </div>
 );
 
-// --- NEW Privacy Policy Page Component ---
-const PrivacyPolicyPage = () => (
-    <div style={styles.privacyContainer}>
-        <header style={{...styles.landingHeader, position: 'relative', width: 'auto'}}>
+const PrivacyPolicyPage = ({ onNavigate }) => (
+    <div style={{...styles.landingContainer, overflowY: 'auto'}}>
+        <header style={{...styles.landingHeader, position: 'sticky', top: 0, backdropFilter: 'blur(10px)'}}>
             <YourLogo />
-            <a href="/" style={{...styles.sidebarNewChatBtn, backgroundColor: 'transparent', border: `1px solid ${styles.colors.subtleBorder}`, color: styles.colors.primaryText, textDecoration: 'none' }}>Back to Home</a>
+            <a href="#" onClick={(e) => { e.preventDefault(); onNavigate('home'); }} style={{...styles.sidebarNewChatBtn, backgroundColor: 'transparent', border: `1px solid ${styles.colors.subtleBorder}`, color: styles.colors.primaryText, textDecoration: 'none' }}>Back to Home</a>
         </header>
-        <div style={styles.privacyContent}>
+        <main style={{...styles.privacyContent, maxWidth: '800px', margin: '0 auto', padding: '40px'}}>
             <h1 style={styles.privacyTitle}>Privacy Policy for Aether</h1>
             <p style={styles.privacyText}><strong>Last Updated:</strong> September 4, 2025</p>
-            <p style={styles.privacyText}>This Privacy Policy describes how Aether ("we," "us," or "our") collects, uses, and discloses your information when you use our application.</p>
             
             <h2 style={styles.privacySectionTitle}>1. Information We Collect</h2>
-            <p style={styles.privacyText}>We collect several types of information to provide and improve our service to you:
+            <p style={styles.privacyText}>
                 <ul>
-                    <li><strong>Personal Information:</strong> When you sign in using Google, we receive your name, email address, and profile picture as provided by Google's authentication service.</li>
-                    <li><strong>Health & Symptom Data:</strong> We collect the symptoms and health-related information you voluntarily provide in your conversations with the Aether assistant.</li>
-                    <li><strong>Location Information:</strong> With your permission, we collect your approximate geographical location to provide more contextually relevant analysis.</li>
-                    <li><strong>Usage Data:</strong> We may collect information on how the service is accessed and used, such as your IP address and browser type.</li>
+                    <li><strong>Personal Information:</strong> When you sign in via Google, we receive your name, email, and profile picture.</li>
+                    <li><strong>Health Data:</strong> We collect the symptoms and health-related information you voluntarily provide.</li>
+                    <li><strong>Location Information:</strong> With your permission, we collect your approximate location.</li>
+                    <li><strong>Usage Data:</strong> We may collect diagnostic data like IP address and browser type.</li>
                 </ul>
             </p>
 
             <h2 style={styles.privacySectionTitle}>2. How We Use Your Information</h2>
-            <p style={styles.privacyText}>
+             <p style={styles.privacyText}>
                 <ul>
-                    <li><strong>To Provide and Maintain Our Service:</strong> Your symptom and health data are sent to Google's Gemini API to generate responses from the AI assistant.</li>
-                    <li><strong>To Manage Your Account:</strong> We use Google Authentication to create and manage your user account.</li>
-                    <li><strong>To Store Your Data:</strong> Your chat history is securely stored in Google's Firebase Firestore database to allow you to access past conversations.</li>
+                    <li><strong>To Provide Service:</strong> Your data is sent to Google's Gemini API to generate responses.</li>
+                    <li><strong>To Manage Your Account:</strong> We use Google Authentication for user management.</li>
+                    <li><strong>To Store Your History:</strong> Chats are stored in Google's Firebase Firestore.</li>
                 </ul>
             </p>
-
-            <h2 style={styles.privacySectionTitle}>3. Data Sharing and Disclosure</h2>
-             <p style={styles.privacyText}>We do not sell or rent your personal data to third parties. Your data is shared with our third-party service providers to facilitate our service, including Google (for Authentication, Firestore, and the Gemini API). You can review <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" style={styles.privacyLink}>Google's Privacy Policy here</a>.</p>
-
-            <h2 style={styles.privacySectionTitle}>4. Data Security</h2>
-            <p style={styles.privacyText}>The security of your data is important to us. We use industry-standard measures, including encryption provided by Google Cloud services, to protect your information. However, no method of transmission over the Internet is 100% secure.</p>
-
-            <h2 style={styles.privacySectionTitle}>5. Contact Us</h2>
-            <p style={styles.privacyText}>If you have any questions about this Privacy Policy, please contact us at gargsatvik31@outlook.com.</p>
-        </div>
+        </main>
     </div>
 );
 
@@ -451,6 +437,7 @@ function App() {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [authReady, setAuthReady] = useState(false);
     const [userLocation, setUserLocation] = useState('Locating...');
+    const [page, setPage] = useState('home'); // 'home', 'privacy'
     
     const isDesktop = useMediaQuery('(min-width: 1024px)');
     const chatEndRef = useRef(null);
@@ -560,14 +547,13 @@ function App() {
         }
     };
 
-    // Simple routing
-    if (window.location.pathname === '/privacy') {
-        return <PrivacyPolicyPage />;
+    if (page === 'privacy') {
+        return <PrivacyPolicyPage onNavigate={setPage} />;
     }
 
     if (!authReady) return <div style={styles.body}></div>;
     
-    if (!user) return <LandingPage handleLogin={handleLogin} />;
+    if (!user) return <LandingPage handleLogin={handleLogin} onNavigate={setPage} />;
     
     return (
         <div style={styles.appContainer}>
