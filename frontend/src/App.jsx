@@ -4,6 +4,7 @@ import axios from "axios";
 import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
+
 // --- Firebase & API Layer (Defined before Components) ---
 const firebaseConfig = {
     apiKey: import.meta.env.VITE_API_KEY,
@@ -21,8 +22,9 @@ getFirestore(app);
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
 const api = {
-    chatWithAI: async (history, predictions, stage) => {
-        return (await axios.post(`${API_BASE}/chat`, { history, local_predictions: predictions, stage })).data;
+    getPrediction: async (symptoms) => (await axios.post(`${API_BASE}/predict`, { symptoms })).data || [],
+    chatWithAI: async (history, predictions, location) => {
+        return (await axios.post(`${API_BASE}/chat`, { history, local_predictions: predictions, location })).data;
     },
     getChats: async (userId) => (await axios.post(`${API_BASE}/get_chats`, { user_id: userId })).data || [],
     saveChat: async (userId, chatData) => await axios.post(`${API_BASE}/save_chat`, { userId, chatData }),
@@ -65,7 +67,7 @@ const styles = {
     },
     backgroundCanvas: {
         position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
-        zIndex: 0, opacity: 0.2
+        zIndex: 0, opacity: 0.4
     },
     landingContent: { zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' },
     landingTitle: {
@@ -107,7 +109,7 @@ const styles = {
         transition: 'background-color 0.2s, color 0.2s', cursor: 'pointer',
     },
     chatListItemActive: { backgroundColor: '#262626', color: '#f5f5f5' },
-    chatScreen: { display: 'flex', flexDirection: 'column', height: '100%', zIndex: 1, backgroundColor: 'rgba(10,10,10,0.5)', backdropFilter: 'blur(2px)' },
+    chatScreen: { display: 'flex', flexDirection: 'column', height: '100%', zIndex: 1, backgroundColor: 'rgba(10,10,10,0.6)', backdropFilter: 'blur(3px)' },
     chatMessagesContainer: { flexGrow: 1, padding: '32px', overflowY: 'auto' },
     messageBubble: {
         padding: '1rem 1.5rem', borderRadius: '1.5rem', maxWidth: '75%',
@@ -372,7 +374,7 @@ const ChatMessage = ({ message }) => {
         <div style={{ display:'flex', margin:'1rem 0', gap:'12px', justifyContent: isUser ? "flex-end" : "flex-start" }}>
             {!isUser && <div style={{width:'32px',height:'32px',backgroundColor:'#1E1E1E',borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><AetherLogoSVG /></div>}
             <div style={{...styles.messageBubble, ...(isUser ? styles.userMessage : styles.modelMessage)}}>
-                <p style={{ margin: 0 }} dangerouslySetInnerHTML={{ __html: message.content.replace(/\*([^*]+)\*/g, '<b>$1</b>').replace(/\n/g, '<br />') }} />
+                <p style={{ margin: 0 }}>{message.content}</p>
             </div>
         </div>
     );
@@ -527,7 +529,7 @@ function App() {
             const res = await api.chatWithAI(history, localPredictions, stageForBackend); 
             const finalMessages = [...updatedMessages, { role: "model", content: res.reply }];
             
-            if (res.predictions) {
+            if (res.predictions && res.predictions.length > 0) {
                 setLocalPredictions(res.predictions);
             }
 
