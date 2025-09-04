@@ -37,114 +37,120 @@ const api = {
 const styles = {
     // Core Palette & Typography
     colors: {
-        background: '#121212',
-        surface: '#1E1E1E',
-        primaryText: '#FFFFFF',
-        secondaryText: '#A9A9A9',
-        accent: '#FFFFFF',
-        accentText: '#121212',
-        subtleBorder: '#282828',
-        glow: 'rgba(0, 190, 255, 0.7)',
+        background: '#0a0a0a', // Darker background
+        surface: '#1a1a1a',   // Contrasting surface for header/footer
+        primaryText: '#f5f5f5', // Softer white
+        secondaryText: '#a3a3a3',
+        accent: '#2563eb', // A professional blue accent
+        accentHover: '#1d4ed8',
+        glow: 'rgba(37, 99, 235, 0.5)',
+        subtleBorder: '#262626',
     },
-    fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
+    fontFamily: "'Roboto', 'Inter', system-ui, -apple-system, sans-serif",
     // Global & Body
     body: {
         margin: 0,
-        fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
-        backgroundColor: '#121212',
-        color: '#A9A9A9',
+        fontFamily: "'Roboto', 'Inter', system-ui, -apple-system, sans-serif",
+        backgroundColor: '#0a0a0a',
+        color: '#a3a3a3',
         height: '100vh',
         overflow: 'hidden',
     },
     appContainer: { display: 'flex', height: '100vh' },
     mainContent: {
-        flex: 1,
-        display: 'flex',
-        flexDirection: 'column',
-        height: '100vh',
-        transition: 'margin-left 0.3s ease-in-out',
-        backgroundColor: '#121212',
+        flex: 1, display: 'flex', flexDirection: 'column', height: '100vh',
+        transition: 'margin-left 0.3s ease-in-out', backgroundColor: '#0a0a0a',
     },
     // Landing Page
     landingContainer: {
-        backgroundColor: '#121212',
-        color: '#A9A9A9',
-        height: '100vh',
-        display: 'flex',
-        flexDirection: 'column',
-        boxSizing: 'border-box',
+        backgroundColor: '#0a0a0a', color: '#a3a3a3', height: '100vh',
+        display: 'flex', flexDirection: 'column', boxSizing: 'border-box',
     },
     landingHeader: {
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: '24px 32px',
-        backgroundColor: '#1E1E1E',
-        borderBottom: '1px solid #282828',
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        padding: '20px 40px', backgroundColor: 'rgba(10, 10, 10, 0.8)',
+        borderBottom: '1px solid #262626', backdropFilter: 'blur(10px)',
+        position: 'fixed', width: 'calc(100% - 80px)', zIndex: 100,
     },
     landingFooter: {
-        display: 'flex',
-        justifyContent: 'center',
-        gap: '32px',
-        padding: '24px 32px',
-        backgroundColor: '#1E1E1E',
-        borderTop: '1px solid #282828',
+        display: 'flex', justifyContent: 'center', gap: '32px', padding: '24px 32px',
+        backgroundColor: '#1a1a1a', borderTop: '1px solid #262626',
     },
     landingMain: {
-        flex: 1,
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        textAlign: 'center',
-        padding: '32px',
-        gap: '24px',
-        position: 'relative',
-        overflow: 'hidden'
+        flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
+        justifyContent: 'center', textAlign: 'center', padding: '120px 32px 32px',
+        gap: '24px', position: 'relative', overflow: 'hidden'
     },
     landingCanvas: {
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        width: '100%',
-        height: '100%',
-        zIndex: 0,
+        position: 'absolute', top: '50%', left: '50%', width: '100%', height: '100%',
+        transform: 'translate(-50%, -50%)', zIndex: 0, opacity: 0.3
     },
-    landingContent: { zIndex: 1 },
+    landingContent: { zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' },
+    landingTitle: {
+        fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: 'clamp(2.5rem, 5vw, 4rem)',
+        color: '#f5f5f5', margin: '0 0 16px 0', letterSpacing: '-0.025em',
+    },
+    landingSubtitle: {
+        fontSize: 'clamp(1rem, 2vw, 1.25rem)', color: '#a3a3a3',
+        maxWidth: '600px', margin: '0 0 32px 0', lineHeight: 1.6,
+    },
+    landingButton: {
+        backgroundColor: '#2563eb', color: '#f5f5f5', fontWeight: '500',
+        padding: '14px 28px', borderRadius: '8px', border: 'none',
+        cursor: 'pointer', transition: 'background-color 0.2s ease', fontSize: '1rem',
+    },
+    // --- NEW --- Feature Section Styles
+    featureSection: {
+        width: '100%', padding: '60px 0', zIndex: 1, backgroundColor: '#0a0a0a'
+    },
+    featureGrid: {
+        display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+        gap: '30px', maxWidth: '1100px', margin: '0 auto', padding: '0 40px',
+    },
+    featureCard: {
+        backgroundColor: 'rgba(26, 26, 26, 0.5)', border: '1px solid #262626',
+        borderRadius: '12px', padding: '24px', textAlign: 'left',
+    },
+    featureTitle: {
+        color: '#f5f5f5', fontSize: '1.1rem', fontWeight: 600, margin: '0 0 12px 0',
+    },
+    featureText: {
+        color: '#a3a3a3', fontSize: '0.95rem', lineHeight: 1.6, margin: 0
+    },
+
     // Component Styling
     sidebar: {
         position: 'fixed', top: 0, left: 0, height: '100%', width: '288px',
-        backgroundColor: '#121212', borderRight: '1px solid #282828',
+        backgroundColor: '#121212', borderRight: '1px solid #262626',
         transition: 'transform 0.3s ease-in-out', zIndex: 40,
         display: 'flex', flexDirection: 'column',
     },
     sidebarHeader: {
-        padding: '1.5rem', display: 'flex',
-        justifyContent: 'space-between', alignItems: 'center',
+        padding: '1.5rem', display: 'flex', justifyContent: 'space-between',
+        alignItems: 'center', borderBottom: '1px solid #262626'
     },
     sidebarNewChatBtn: {
-        width: 'auto', margin: '0', display: 'flex',
-        alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
-        padding: '12px 24px', fontSize: '16px', fontWeight: '500',
-        color: '#121212', backgroundColor: '#FFFFFF',
-        borderRadius: '9999px', border: 'none', cursor: 'pointer',
-        transition: 'transform 0.2s ease',
+        width: 'auto', margin: '0', display: 'flex', alignItems: 'center',
+        justifyContent: 'center', gap: '0.5rem', padding: '12px 24px',
+        fontSize: '16px', fontWeight: '500', color: '#f5f5f5',
+        backgroundColor: '#2563eb', borderRadius: '8px', border: 'none',
+        cursor: 'pointer', transition: 'background-color 0.2s ease',
     },
     chatListItem: {
         display: 'block', padding: '0.75rem 1.5rem', fontSize: '14px',
-        borderRadius: '9999px', textDecoration: 'none', whiteSpace: 'nowrap',
-        overflow: 'hidden', textOverflow: 'ellipsis', color: '#A9A9A9',
+        borderRadius: '8px', textDecoration: 'none', whiteSpace: 'nowrap',
+        overflow: 'hidden', textOverflow: 'ellipsis', color: '#a3a3a3',
         transition: 'background-color 0.2s, color 0.2s', cursor: 'pointer',
     },
-    chatListItemActive: { backgroundColor: '#282828', color: '#FFFFFF' },
+    chatListItemActive: { backgroundColor: '#262626', color: '#f5f5f5' },
     chatScreen: { display: 'flex', flexDirection: 'column', height: '100%' },
     chatMessagesContainer: { flexGrow: 1, padding: '32px', overflowY: 'auto' },
     messageBubble: {
         padding: '1rem 1.5rem', borderRadius: '1.5rem', maxWidth: '75%',
-        color: '#FFFFFF', lineHeight: '1.5', wordWrap: 'break-word',
+        color: '#f5f5f5', lineHeight: '1.5', wordWrap: 'break-word',
     },
     userMessage: {
-        backgroundColor: '#282828',
+        backgroundColor: '#2563eb',
         borderRadius: '1.5rem 1.5rem 0.25rem 1.5rem', alignSelf: 'flex-end',
     },
     modelMessage: {
@@ -153,36 +159,36 @@ const styles = {
     },
     chatInput: {
         flexGrow: 1, padding: '1rem', backgroundColor: '#1E1E1E',
-        border: '1px solid #282828', borderRadius: '9999px',
-        color: '#FFFFFF', fontSize: '16px', outline: 'none',
+        border: '1px solid #262626', borderRadius: '8px',
+        color: '#f5f5f5', fontSize: '16px', outline: 'none',
     },
     chatInputContainer: {
         display: 'flex', gap: '0.5rem', alignItems: 'center',
         padding: '0 32px 32px 32px'
     },
     iconButton: {
-        background: 'none', border: 'none', color: '#A9A9A9',
+        background: 'none', border: 'none', color: '#a3a3a3',
         cursor: 'pointer', padding: '0.5rem',
     },
     sendButton: {
-        padding: '12px', borderRadius: '50%', color: '#121212',
-        border: 'none', cursor: 'pointer', backgroundColor: '#FFFFFF',
-        transition: 'transform 0.2s ease', display: 'flex',
+        padding: '12px', borderRadius: '8px', color: '#f5f5f5',
+        border: 'none', cursor: 'pointer', backgroundColor: '#2563eb',
+        transition: 'background-color 0.2s ease', display: 'flex',
         alignItems: 'center', justifyContent: 'center'
     },
     analysisCard: {
-        padding: '1rem', margin: '0 32px 1rem', border: '1px solid #282828',
-        borderRadius: '0.75rem', backgroundColor: '#1E1E1E',
+        padding: '1rem', margin: '0 32px 1rem', border: '1px solid #262626',
+        borderRadius: '12px', backgroundColor: '#1a1a1a',
     },
     analysisTitle: {
         display: 'flex', alignItems: 'center', gap: '0.5rem',
-        fontSize: '14px', fontWeight: '600', color: '#A9A9A9',
+        fontSize: '14px', fontWeight: '600', color: '#a3a3a3',
         marginBottom: '0.75rem',
     },
     locationDisplay: {
         padding: '1rem 1.5rem', display: 'flex', alignItems: 'center',
-        gap: '0.75rem', fontSize: '14px', color: '#A9A9A9',
-        borderTop: '1px solid #282828',
+        gap: '0.75rem', fontSize: '14px', color: '#a3a3a3',
+        borderTop: '1px solid #262626',
     },
     modalBackdrop: {
         position: 'fixed', inset: 0, backgroundColor: 'rgba(0, 0, 0, 0.7)',
@@ -190,19 +196,19 @@ const styles = {
         justifyContent: 'center',
     },
     modalContent: {
-        backgroundColor: '#1E1E1E', padding: '2rem', borderRadius: '0.75rem',
-        width: '90%', maxWidth: '450px', color: '#FFFFFF',
-        border: '1px solid #282828',
+        backgroundColor: '#1a1a1a', padding: '2rem', borderRadius: '12px',
+        width: '90%', maxWidth: '450px', color: '#f5f5f5',
+        border: '1px solid #262626',
     },
     modalTitle: {
         fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '1rem',
         display: 'flex', alignItems: 'center', gap: '0.5rem',
     },
     modalButton: {
-        padding: '12px 24px', width: '100%', backgroundColor: '#FFFFFF',
-        color: '#121212', fontWeight: '500', border: 'none',
-        borderRadius: '9999px', cursor: 'pointer', marginTop: '1.5rem',
-        transition: 'transform 0.2s ease',
+        padding: '12px 24px', width: '100%', backgroundColor: '#2563eb',
+        color: '#f5f5f5', fontWeight: '500', border: 'none',
+        borderRadius: '8px', cursor: 'pointer', marginTop: '1.5rem',
+        transition: 'background-color 0.2s ease',
     },
     suggestionChipsContainer: {
         display: 'flex', flexWrap: 'wrap', gap: '0.5rem',
@@ -210,26 +216,23 @@ const styles = {
     },
     suggestionChip: {
         padding: '0.5rem 1rem', backgroundColor: '#1E1E1E',
-        border: '1px solid #282828', borderRadius: '9999px',
-        cursor: 'pointer', color: '#A9A9A9',
+        border: '1px solid #262626', borderRadius: '9999px',
+        cursor: 'pointer', color: '#a3a3a3',
         transition: 'background-color 0.2s',
     },
     summaryCard: {
-        margin: '0 32px 1rem', padding: '1.5rem', backgroundColor: '#1E1E1E',
-        border: '1px solid #282828', borderRadius: '0.75rem',
+        margin: '0 32px 1rem', padding: '1.5rem', backgroundColor: '#1a1a1a',
+        border: '1px solid #262626', borderRadius: '12px',
     },
     summaryTitle: {
-        fontSize: '1.125rem', fontWeight: 'bold', color: '#FFFFFF',
+        fontSize: '1.125rem', fontWeight: 'bold', color: '#f5f5f5',
         marginBottom: '1rem',
     },
     summarySection: { marginBottom: '1rem' },
-    summaryLabel: {
-        fontWeight: '600', color: '#A9A9A9',
-        marginBottom: '0.25rem',
-    },
+    summaryLabel: { fontWeight: '600', color: '#a3a3a3', marginBottom: '0.25rem' },
     copyButton: {
-        float: 'right', background: 'none', border: '1px solid #282828',
-        color: '#A9A9A9', borderRadius: '0.25rem',
+        float: 'right', background: 'none', border: '1px solid #262626',
+        color: '#a3a3a3', borderRadius: '4px',
         padding: '0.25rem 0.5rem', cursor: 'pointer',
     },
     imagePreviewContainer: {
@@ -237,18 +240,18 @@ const styles = {
         marginRight: '0.5rem',
     },
     imagePreview: {
-        width: '100%', height: '100%', borderRadius: '0.5rem',
+        width: '100%', height: '100%', borderRadius: '8px',
         objectFit: 'cover',
     },
     removeImageButton: {
         position: 'absolute', top: '-5px', right: '-5px',
         background: '#1E1E1E', color: 'white',
-        border: '1px solid #282828', borderRadius: '50%',
+        border: '1px solid #262626', borderRadius: '50%',
         width: '20px', height: '20px', display: 'flex',
         alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
     },
     uploadedImageInChat: {
-        maxWidth: '100%', maxHeight: '300px', borderRadius: '0.75rem',
+        maxWidth: '100%', maxHeight: '300px', borderRadius: '12px',
         marginTop: '0.5rem',
     },
 };
@@ -266,14 +269,14 @@ const useMediaQuery = (query) => {
 };
 
 // --- SVG Icons ---
-const AetherLogo = () => <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{width:'32px',height:'32px'}}><path d="M12 2L3 22H21L12 2Z" stroke="#e0e0e0" strokeWidth="1.5" /><path d="M7 15L12 5L17 15H7Z" stroke="#e0e0e0" strokeWidth="1.5" /></svg>;
+const AetherLogoSVG = () => <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{width:'32px',height:'32px'}}><path d="M12 2L3 22H21L12 2Z" stroke="#e0e0e0" strokeWidth="1.5" /><path d="M7 15L12 5L17 15H7Z" stroke="#e0e0e0" strokeWidth="1.5" /></svg>;
 const YourLogo = () => (
     <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
-        <img src={logoUrl} alt="Health AI Logo" style={{ height: '32px' }} />
-        <span style={{color: styles.colors.primaryText, fontWeight: 'bold', fontSize: '20px'}}>Health AI</span>
+        <img src={logoUrl} alt="Aether Logo" style={{ height: '28px' }} />
+        <span style={{color: styles.colors.primaryText, fontFamily: "'Inter', sans-serif", fontWeight: '600', fontSize: '22px'}}>Aether</span>
     </div>
 );
-const SendIcon = () => <svg style={{width:'24px',height:'24px'}} viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" /></svg>;
+const SendIcon = () => <svg style={{width:'20px',height:'20px'}} viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" /></svg>;
 const PlusIcon = () => <svg style={{width:'20px',height:'20px'}} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>;
 const SignOutIcon = () => <svg style={{width:'20px',height:'20px'}} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>;
 const MenuIcon = () => <svg style={{width:'24px',height:'24px'}} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>;
@@ -295,12 +298,12 @@ const NeuralNetworkAnimation = () => {
                 canvas.height = canvas.parentElement.offsetHeight;
             }
         };
-        let particles = []; const particleCount = 40;
+        let particles = []; const particleCount = 50;
         class Particle {
             constructor() {
                 this.x = Math.random() * (canvas.width || 0); this.y = Math.random() * (canvas.height || 0);
-                this.vx = (Math.random() - 0.5) * 0.5; this.vy = (Math.random() - 0.5) * 0.5;
-                this.radius = 1.5;
+                this.vx = (Math.random() - 0.5) * 0.3; this.vy = (Math.random() - 0.5) * 0.3;
+                this.radius = Math.random() * 1.5;
             }
             update() {
                 this.x += this.vx; this.y += this.vy;
@@ -319,9 +322,9 @@ const NeuralNetworkAnimation = () => {
             for (let i = 0; i < particles.length; i++) {
                 for (let j = i; j < particles.length; j++) {
                     const distance = Math.hypot(particles[i].x - particles[j].x, particles[i].y - particles[j].y);
-                    if (distance < 120) {
-                        const opacity = 1 - distance / 120;
-                        ctx.strokeStyle = `rgba(0, 190, 255, ${opacity * 0.5})`; ctx.lineWidth = 1;
+                    if (distance < 150) {
+                        const opacity = 1 - distance / 150;
+                        ctx.strokeStyle = `rgba(37, 99, 235, ${opacity * 0.3})`; ctx.lineWidth = 1;
                         ctx.beginPath(); ctx.moveTo(particles[i].x, particles[i].y); ctx.lineTo(particles[j].x, particles[j].y); ctx.stroke();
                     }
                 }
@@ -348,7 +351,7 @@ const InitialDisclaimerModal = ({ onAccept }) => (
     <div style={styles.modalBackdrop}>
         <div style={styles.modalContent}>
             <h2 style={styles.modalTitle}><WarningIcon /> Important Disclaimer</h2>
-            <p style={{color: styles.colors.secondaryText, lineHeight: 1.5}}>Dr. Aether is an AI-powered assistant and is not a substitute for professional medical advice, diagnosis, or treatment. Always seek the advice of your physician or other qualified health provider with any questions you may have regarding a medical condition.</p>
+            <p style={{color: styles.colors.secondaryText, lineHeight: 1.5}}>Aether is an AI-powered assistant and is not a substitute for professional medical advice, diagnosis, or treatment. Always seek the advice of your physician or other qualified health provider with any questions you may have regarding a medical condition.</p>
             <p style={{color: styles.colors.secondaryText, lineHeight: 1.5}}>If you are experiencing a medical emergency, please call your local emergency services immediately.</p>
             <button style={styles.modalButton} onClick={onAccept}>I Understand and Accept</button>
         </div>
@@ -378,20 +381,39 @@ const LandingPage = ({ handleLogin }) => (
     <div style={styles.landingContainer}>
         <header style={styles.landingHeader}>
             <YourLogo />
-            <button style={{...styles.sidebarNewChatBtn, backgroundColor: '#282828', color: '#FFFFFF' }} onClick={handleLogin}>Login</button>
+            <button style={{...styles.sidebarNewChatBtn, backgroundColor: 'transparent', border: `1px solid ${styles.colors.subtleBorder}`, color: styles.colors.primaryText }} onClick={handleLogin}>Login</button>
         </header>
-        <main style={styles.landingMain}>
-            <NeuralNetworkAnimation />
-            <div style={styles.landingContent}>
-                <p style={{fontSize: '24px', fontWeight: 400, color: '#A9A9A9', margin: 0}}>Your AI-powered health assistant.</p>
-                <button style={{...styles.sidebarNewChatBtn, marginTop: '24px' }} onClick={handleLogin}>Get Started</button>
-            </div>
-        </main>
-        <footer style={styles.landingFooter}>
-            <a href="https://github.com/gargsatvik" target="_blank" rel="noopener noreferrer" style={{fontSize: '14px', color: '#A9A9A9', textDecoration: 'none'}}>My GitHub</a>
-            <a href="https://github.com/gargsatvik/Health-app" target="_blank" rel="noopener noreferrer" style={{fontSize: '14px', color: '#A9A9A9', textDecoration: 'none'}}>Project Repo</a>
-            <a href="/privacy" style={{fontSize: '14px', color: '#A9A9A9', textDecoration: 'none'}}>Privacy Policy</a>
-        </footer>
+        <div style={{overflowY: 'auto'}}>
+            <main style={styles.landingMain}>
+                <NeuralNetworkAnimation />
+                <div style={styles.landingContent}>
+                    <h1 style={styles.landingTitle}>Intelligent Health Insights,<br />Instantly.</h1>
+                    <p style={styles.landingSubtitle}>Aether is your personal AI health companion, designed to help you understand your symptoms and guide you toward better well-being.</p>
+                    <button style={styles.landingButton} onClick={handleLogin}>Get Started For Free</button>
+                </div>
+            </main>
+            <section style={styles.featureSection}>
+                <div style={styles.featureGrid}>
+                    <div style={styles.featureCard}>
+                        <h3 style={styles.featureTitle}>AI-Powered Analysis</h3>
+                        <p style={styles.featureText}>Leverage our advanced diagnostic model to get instant, data-driven insights into your symptoms.</p>
+                    </div>
+                    <div style={styles.featureCard}>
+                        <h3 style={styles.featureTitle}>Instant Symptom Checker</h3>
+                        <p style={styles.featureText}>Describe your symptoms in plain language and receive a preliminary analysis in seconds.</p>
+                    </div>
+                    <div style={styles.featureCard}>
+                        <h3 style={styles.featureTitle}>Personalized & Private</h3>
+                        <p style={styles.featureText}>Your conversations are secure and tailored to the information you provide, ensuring privacy.</p>
+                    </div>
+                </div>
+            </section>
+            <footer style={styles.landingFooter}>
+                <a href="https://github.com/gargsatvik" target="_blank" rel="noopener noreferrer" style={{fontSize: '14px', color: '#a3a3a3', textDecoration: 'none'}}>My GitHub</a>
+                <a href="https://github.com/gargsatvik/Health-app" target="_blank" rel="noopener noreferrer" style={{fontSize: '14px', color: '#a3a3a3', textDecoration: 'none'}}>Project Repo</a>
+                <a href="/privacy" style={{fontSize: '14px', color: '#a3a3a3', textDecoration: 'none'}}>Privacy Policy</a>
+            </footer>
+        </div>
     </div>
 );
 const InitialAnalysisCard = ({ predictions }) => {
@@ -402,8 +424,8 @@ const InitialAnalysisCard = ({ predictions }) => {
             {predictions.map((p, i) => (
                 <div key={i} style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'0.5rem',fontSize:'14px'}}>
                     <span style={{minWidth:'100px',flexShrink:0,color:styles.colors.secondaryText}}>{p.disease}</span>
-                    <div style={{flexGrow:1,height:'8px',backgroundColor:'#282828',borderRadius:'4px',margin:'0 0.75rem',overflow:'hidden'}}>
-                        <div style={{height:'100%',backgroundColor:'#FFFFFF',borderRadius:'4px',width:`${p.confidence*100}%`}} />
+                    <div style={{flexGrow:1,height:'8px',backgroundColor:'#262626',borderRadius:'4px',margin:'0 0.75rem',overflow:'hidden'}}>
+                        <div style={{height:'100%',backgroundColor:styles.colors.accent,borderRadius:'4px',width:`${p.confidence*100}%`}} />
                     </div>
                     <span style={{minWidth:'40px',textAlign:'right',flexShrink:0,color:styles.colors.primaryText}}>{(p.confidence*100).toFixed(0)}%</span>
                 </div>
@@ -419,10 +441,10 @@ const ChatHistorySidebar = ({ chats, onSelectChat, activeChatId, onNewChat, user
             <div style={sidebarStyle}>
                 <div style={styles.sidebarHeader}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <AetherLogo />
+                        <AetherLogoSVG />
                         <h1 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: 'white' }}>Aether</h1>
                     </div>
-                    {!isDesktop && <button onClick={() => setIsSidebarOpen(false)} style={{background:'none',border:'none',color:'#94a3b8',cursor:'pointer'}}><XIcon /></button>}
+                    {!isDesktop && <button onClick={() => setIsSidebarOpen(false)} style={{background:'none',border:'none',color:'#a3a3a3',cursor:'pointer'}}><XIcon /></button>}
                 </div>
                 <div style={{padding:'0 1.5rem'}}><button onClick={onNewChat} style={{...styles.sidebarNewChatBtn, width:'100%', margin:0}}><PlusIcon /> New Chat</button></div>
                 <div style={{flexGrow:1, padding:'1.5rem', overflowY:'auto'}}>
@@ -435,13 +457,13 @@ const ChatHistorySidebar = ({ chats, onSelectChat, activeChatId, onNewChat, user
                     </ul>
                 </div>
                 <div style={styles.locationDisplay}><LocationIcon /><span>{userLocation}</span></div>
-                <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid #282828' }}>
+                <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid #262626' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                         <div style={{display:'flex',alignItems:'center',gap:'12px',overflow:'hidden'}}>
                             <img src={user.photoURL} alt="User" style={{width:'32px',height:'32px',borderRadius:'50%'}} />
                             <span style={{fontSize:'14px',fontWeight:'500',color:'white',textOverflow:'ellipsis',overflow:'hidden',whiteSpace:'nowrap'}}>{user.displayName}</span>
                         </div>
-                        <button onClick={onLogout} style={{background:'none',border:'none',color:'#A9A9A9',cursor:'pointer'}}><SignOutIcon /></button>
+                        <button onClick={onLogout} style={{background:'none',border:'none',color:'#a3a3a3',cursor:'pointer'}}><SignOutIcon /></button>
                     </div>
                 </div>
             </div>
@@ -453,7 +475,7 @@ const ChatMessage = ({ message }) => {
     const isUser = message.role === "user";
     return (
         <div style={{ display:'flex', margin:'1rem 0', gap:'12px', justifyContent: isUser ? "flex-end" : "flex-start" }}>
-            {!isUser && <div style={{width:'32px',height:'32px',backgroundColor:'#1E1E1E',borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><AetherLogo /></div>}
+            {!isUser && <div style={{width:'32px',height:'32px',backgroundColor:'#1E1E1E',borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><AetherLogoSVG /></div>}
             <div style={{...styles.messageBubble, ...(isUser ? styles.userMessage : styles.modelMessage)}}>
                 <p style={{ margin: 0 }} dangerouslySetInnerHTML={{ __html: message.content.replace(/\*([^*]+)\*/g, '<b>$1</b>').replace(/\n/g, '<br />') }} />
                 {message.image && <img src={message.image} alt="Symptom" style={styles.uploadedImageInChat} />}
@@ -463,8 +485,8 @@ const ChatMessage = ({ message }) => {
 };
 const WelcomeScreen = ({ onNewChat }) => (
     <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',height:'100%',textAlign:'center',padding:'1rem'}}>
-        <AetherLogo />
-        <h2 style={{fontSize:'24px',fontWeight:400,color:'#A9A9A9',marginTop:'1rem',marginBottom:'1.5rem'}}>Welcome to Aether Health</h2>
+        <AetherLogoSVG />
+        <h2 style={{fontSize:'24px',fontWeight:400,color:'#a3a3a3',marginTop:'1rem',marginBottom:'1.5rem'}}>Welcome to Aether</h2>
         <button onClick={onNewChat} style={styles.sidebarNewChatBtn}>Start New Chat</button>
     </div>
 );
@@ -498,7 +520,7 @@ function App() {
         const hasAccepted = localStorage.getItem('acceptedDisclaimer');
         if (!hasAccepted) setShowDisclaimer(true);
         const styleSheet = document.createElement("style");
-        styleSheet.innerText = `@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap'); @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`;
+        styleSheet.innerText = `@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Inter:wght@600;700&display=swap'); @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`;
         document.head.appendChild(styleSheet);
         return () => { styleSheet.parentNode?.removeChild(styleSheet); };
     }, []);
@@ -667,7 +689,7 @@ function App() {
         <div style={styles.appContainer}>
             <ChatHistorySidebar user={user} chats={chats} onSelectChat={handleSelectChat} activeChatId={activeChatId} onNewChat={startNewChat} onLogout={handleLogout} isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} userLocation={userLocation} />
             <main style={{ ...styles.mainContent, marginLeft: isDesktop ? '288px' : '0' }}>
-                {!isDesktop && <button onClick={() => setIsSidebarOpen(true)} style={{ position:'fixed',top:'1rem',left:'1rem',zIndex:50,background:'rgba(30,41,59,0.5)',border:'none',padding:'0.5rem',borderRadius:'0.375rem',color:'white',cursor:'pointer' }}><MenuIcon /></button>}
+                {!isDesktop && <button onClick={() => setIsSidebarOpen(true)} style={{ position:'fixed',top:'1rem',left:'1rem',zIndex:50,background:'rgba(30,41,59,0.5)',border:'none',padding:'0.5rem',borderRadius:'8px',color:'white',cursor:'pointer' }}><MenuIcon /></button>}
                 {activeChatId ? (
                     <div style={styles.chatScreen}>
                         <div style={styles.chatMessagesContainer}>
@@ -693,7 +715,7 @@ function App() {
                                     disabled={loading || isChatConcluded}
                                 />
                                 <button type="submit" style={styles.sendButton} disabled={loading || isChatConcluded}>
-                                    {loading ? <div style={{width:'24px',height:'24px',border:'2px solid #64748b',borderTopColor:'white',borderRadius:'50%',animation:'spin 1s linear infinite'}} /> : <SendIcon />}
+                                    {loading ? <div style={{width:'20px',height:'20px',border:'2px solid #a3a3a3',borderTopColor:'#f5f5f5',borderRadius:'50%',animation:'spin 1s linear infinite'}} /> : <SendIcon />}
                                 </button>
                             </form>
                         </div>
