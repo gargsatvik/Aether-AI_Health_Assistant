@@ -67,7 +67,7 @@ const styles = {
     },
     backgroundCanvas: {
         position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
-        zIndex: 0, opacity: 0.4
+        zIndex: 0, opacity: 0.4 // Increased opacity for more visibility
     },
     landingContent: { zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' },
     landingTitle: {
@@ -147,6 +147,17 @@ const styles = {
         gap: '0.75rem', fontSize: '14px', color: '#a3a3a3',
         borderTop: '1px solid #262626',
     },
+    privacyContainer: {
+        height: '100vh', display: 'flex', flexDirection: 'column',
+    },
+    privacyContent: {
+        maxWidth: '800px', margin: '0 auto', padding: '2rem',
+        flex: 1, overflowY: 'auto'
+    },
+    privacyTitle: { color: '#f5f5f5', fontSize: '2.5rem', marginBottom: '1rem' },
+    privacySectionTitle: { color: '#f5f5f5', fontSize: '1.5rem', marginTop: '2rem', marginBottom: '1rem' },
+    privacyText: { lineHeight: 1.7 },
+    privacyLink: { color: '#2563eb', textDecoration: 'none' }
 };
 
 // --- Helper Hook ---
@@ -201,7 +212,7 @@ const NeuralNetworkAnimation = () => {
                 canvas.height = canvas.parentElement.offsetHeight;
             }
         };
-        let particles = []; const particleCount = 100;
+        let particles = []; const particleCount = 100; // More particles
         class Particle {
             constructor() {
                 this.x = Math.random() * (canvas.width || 0); this.y = Math.random() * (canvas.height || 0);
@@ -235,7 +246,7 @@ const NeuralNetworkAnimation = () => {
             }
             draw() {
                 ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-                ctx.fillStyle = `rgba(59, 130, 246, ${Math.random() * 0.5 + 0.5})`;
+                ctx.fillStyle = `rgba(59, 130, 246, ${Math.random() * 0.5 + 0.5})`; // Brighter, flickering effect
                 ctx.fill();
             }
         }
@@ -248,7 +259,7 @@ const NeuralNetworkAnimation = () => {
                     const distance = Math.hypot(particles[i].x - particles[j].x, particles[i].y - particles[j].y);
                     if (distance < 120) { 
                         const opacityValue = 1 - (distance/120);
-                        ctx.strokeStyle = `rgba(59, 130, 246, ${opacityValue * 0.6})`;
+                        ctx.strokeStyle = `rgba(59, 130, 246, ${opacityValue * 0.6})`; // Brighter lines
                         ctx.lineWidth = 1;
                         ctx.beginPath(); ctx.moveTo(particles[i].x, particles[i].y); ctx.lineTo(particles[j].x, particles[j].y); ctx.stroke();
                     }
@@ -278,7 +289,7 @@ const NeuralNetworkAnimation = () => {
     }, []);
     return <canvas ref={canvasRef} style={styles.backgroundCanvas} />;
 };
-const LandingPage = ({ handleLogin }) => (
+const LandingPage = ({ handleLogin, onNavigate }) => (
     <div style={styles.landingContainer}>
         <header style={styles.landingHeader}>
             <YourLogo />
@@ -309,7 +320,7 @@ const LandingPage = ({ handleLogin }) => (
         <footer style={styles.landingFooter}>
             <a href="https://github.com/gargsatvik" target="_blank" rel="noopener noreferrer" style={{fontSize: '14px', color: '#a3a3a3', textDecoration: 'none'}}>My GitHub</a>
             <a href="https://github.com/gargsatvik/Health-app" target="_blank" rel="noopener noreferrer" style={{fontSize: '14px', color: '#a3a3a3', textDecoration: 'none'}}>Project Repo</a>
-            <a href="/privacy" style={{fontSize: '14px', color: '#a3a3a3', textDecoration: 'none'}}>Privacy Policy</a>
+            <a href="#" onClick={(e) => { e.preventDefault(); onNavigate('privacy'); }} style={{fontSize: '14px', color: '#a3a3a3', textDecoration: 'none'}}>Privacy Policy</a>
         </footer>
     </div>
 );
@@ -386,45 +397,55 @@ const WelcomeScreen = ({ onNewChat }) => (
         <button onClick={onNewChat} style={styles.sidebarNewChatBtn}>Start New Chat</button>
     </div>
 );
-const ChatScreen = ({ messages, userInput, setUserInput, handleSendMessage, loading, localPredictions, conversationStage }) => {
-    const chatEndRef = useRef(null);
-    useEffect(() => {
-        chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, [messages, localPredictions]);
 
-    return (
-        <div style={styles.chatScreen}>
-            <div style={{...styles.chatMessagesContainer, display: 'flex', flexDirection: 'column'}}>
-                <div style={{flexGrow: 1}}>
-                    {messages.map((msg, index) => <ChatMessage key={index} message={msg} />)}
-                </div>
-                <InitialAnalysisCard predictions={localPredictions} />
-                <div ref={chatEndRef} />
-            </div>
-            <div style={{ borderTop: `1px solid ${styles.colors.subtleBorder}`}}>
-                <form onSubmit={handleSendMessage} style={styles.chatInputContainer}>
-                    <input
-                        type="text"
-                        value={userInput}
-                        onChange={(e) => setUserInput(e.target.value)}
-                        placeholder={
-                            conversationStage === 'awaiting_name' ? 'Please enter your name...' :
-                            conversationStage === 'awaiting_age' ? 'Please enter your age...' :
-                            conversationStage === 'awaiting_sex' ? 'Please enter your sex...' :
-                            conversationStage === 'awaiting_symptoms' ? 'Please describe your symptoms...' :
-                            'Send a message...'
-                        }
-                        style={styles.chatInput}
-                        disabled={loading}
-                    />
-                    <button type="submit" style={styles.sendButton} disabled={loading}>
-                        {loading ? <div style={{width:'20px',height:'20px',border:'2px solid #a3a3a3',borderTopColor:'#f5f5f5',borderRadius:'50%',animation:'spin 1s linear infinite'}} /> : <SendIcon />}
-                    </button>
-                </form>
-            </div>
-        </div>
-    );
-};
+const PrivacyPolicyPage = ({ onNavigate }) => (
+    <div style={{...styles.landingContainer, overflowY: 'auto'}}>
+        <header style={{...styles.landingHeader, position: 'sticky', top: 0, backdropFilter: 'blur(10px)'}}>
+            <YourLogo />
+            <a href="#" onClick={(e) => { e.preventDefault(); onNavigate('home'); }} style={{...styles.sidebarNewChatBtn, backgroundColor: 'transparent', border: `1px solid ${styles.colors.subtleBorder}`, color: styles.colors.primaryText, textDecoration: 'none' }}>Back to Home</a>
+        </header>
+        <main style={{...styles.privacyContent, maxWidth: '800px', margin: '0 auto', padding: '40px'}}>
+            <h1 style={styles.privacyTitle}>Privacy Policy for Aether</h1>
+            <p style={styles.privacyText}><strong>Last Updated:</strong> September 4, 2025</p>
+            
+            <h2 style={styles.privacySectionTitle}>1. Introduction</h2>
+            <p style={styles.privacyText}>Welcome to Aether. We are committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our application. By using Aether, you agree to the collection and use of information in accordance with this policy.</p>
+
+            <h2 style={styles.privacySectionTitle}>2. Information We Collect</h2>
+            <p style={styles.privacyText}>
+                <ul>
+                    <li><strong>Personal Data:</strong> When you sign in using Google Authentication, we receive your name, email address, and profile picture. We do not collect any passwords.</li>
+                    <li><strong>Health & Symptom Data:</strong> We collect the symptoms, medical history, and other health-related information you voluntarily provide in your conversations with the Aether assistant. This data is essential for the AI to provide a relevant analysis.</li>
+                    <li><strong>Location Information:</strong> With your explicit permission, we collect your approximate geographical location (city, country) to provide more contextually relevant analysis and potential local health insights. You can deny this permission.</li>
+                    <li><strong>Usage Data:</strong> We may automatically collect information on how the service is accessed and used. This may include your IP address, browser type, device information, and diagnostic data to help us improve service stability and performance.</li>
+                </ul>
+            </p>
+
+            <h2 style={styles.privacySectionTitle}>3. How We Use Your Information</h2>
+             <p style={styles.privacyText}>
+                <ul>
+                    <li><strong>To Provide and Maintain Our Service:</strong> Your health data is processed by our machine learning models and sent to Google's Gemini API to generate responses.</li>
+                    <li><strong>To Manage Your Account:</strong> We use Google Authentication to create and secure your user account.</li>
+                    <li><strong>To Store Your Chat History:</strong> Your conversations are securely stored in Google's Firebase Firestore database, linked to your user account, allowing you to review them later.</li>
+                    <li><strong>For Service Improvement:</strong> Anonymized and aggregated data may be used to analyze trends and improve the accuracy and helpfulness of our models and services.</li>
+                </ul>
+            </p>
+
+             <h2 style={styles.privacySectionTitle}>4. Data Sharing and Disclosure</h2>
+             <p style={styles.privacyText}>We do not sell, trade, or rent your personal data. Your information is shared only with the following essential third-party service providers under strict confidentiality agreements:</p>
+             <ul>
+                <li><strong>Google LLC:</strong> For user authentication (Google Sign-In), database storage (Firestore), and AI processing (Gemini API). You can review <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" style={styles.privacyLink}>Google's Privacy Policy here</a>.</li>
+             </ul>
+             <p style={styles.privacyText}>We may also disclose your data if required by law or to protect the rights, property, or safety of our company, our users, or the public.</p>
+
+            <h2 style={styles.privacySectionTitle}>5. Data Security</h2>
+            <p style={styles.privacyText}>We prioritize the security of your data and rely on the robust, industry-standard security measures provided by Google Cloud services, including data encryption in transit and at rest. While we strive to use commercially acceptable means to protect your Personal Information, we cannot guarantee its absolute security as no method of transmission over the Internet is 100% secure.</p>
+
+            <h2 style={styles.privacySectionTitle}>6. Contact Us</h2>
+            <p style={styles.privacyText}>If you have any questions about this Privacy Policy, please contact us at gargsatvik31@outlook.com.</p>
+        </main>
+    </div>
+);
 
 // --- Main App Component ---
 function App() {
@@ -438,10 +459,11 @@ function App() {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [authReady, setAuthReady] = useState(false);
     const [userLocation, setUserLocation] = useState('Locating...');
-    const [conversationStage, setConversationStage] = useState('greeting');
+    const [page, setPage] = useState('home');
     
     const isDesktop = useMediaQuery('(min-width: 1024px)');
-    
+    const chatEndRef = useRef(null);
+
     useEffect(() => {
         Object.assign(document.body.style, styles.body);
         const styleSheet = document.createElement("style");
@@ -478,6 +500,10 @@ function App() {
         }
     }, [user]);
 
+    useEffect(() => {
+        chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, [messages]);
+
     const fetchUserChats = async (uid) => {
         try {
             const userChats = await api.getChats(uid);
@@ -490,21 +516,16 @@ function App() {
     
     const startNewChat = () => {
         setActiveChatId(uuidv4());
-        setMessages([{
-            role: 'model',
-            content: "Hello, I'm Dr. Aether. To get started, could you please tell me your full name?"
-        }]);
+        setMessages([]);
         setLocalPredictions([]); 
         setUserInput(""); 
         setIsSidebarOpen(false);
-        setConversationStage('awaiting_name');
     };
 
     const handleSelectChat = (chat) => {
         setActiveChatId(chat.id); 
         setMessages(chat.messages);
         setLocalPredictions(chat.localPredictions || []); 
-        setConversationStage('chatting');
         setIsSidebarOpen(false);
     };
 
@@ -519,32 +540,22 @@ function App() {
         setLoading(true);
 
         try {
+            let preds = [];
+            if (updatedMessages.filter(m => m.role === 'user').length === 1) {
+                preds = await api.getPrediction(userInput);
+                setLocalPredictions(preds);
+            }
+            
             const history = updatedMessages.map(m => ({ role: m.role, parts: [m.content] }));
-            
-            let stageForBackend = conversationStage;
-            if (conversationStage === 'awaiting_symptoms') {
-                stageForBackend = 'process_symptoms';
-            }
 
-            const res = await api.chatWithAI(history, localPredictions, stageForBackend); 
+            const res = await api.chatWithAI(history, preds, userLocation); 
             const finalMessages = [...updatedMessages, { role: "model", content: res.reply }];
-            
-            if (res.predictions && res.predictions.length > 0) {
-                setLocalPredictions(res.predictions);
-            }
-
             setMessages(finalMessages);
-
-            if (conversationStage === 'awaiting_name') setConversationStage('awaiting_age');
-            else if (conversationStage === 'awaiting_age') setConversationStage('awaiting_sex');
-            else if (conversationStage === 'awaiting_sex') setConversationStage('awaiting_symptoms');
-            else if (stageForBackend === 'process_symptoms') setConversationStage('chatting');
             
             const chatToSave = {
-                id: activeChatId, messages: finalMessages, 
-                localPredictions: res.predictions || localPredictions,
+                id: activeChatId, messages: finalMessages, localPredictions: preds,
                 timestamp: new Date().toISOString(),
-                title: finalMessages.find(m => m.role === 'user')?.content.substring(0, 40) || "New Chat"
+                title: finalMessages[0]?.content.substring(0, 40) || "New Chat"
             };
 
             await api.saveChat(user.uid, chatToSave);
@@ -558,9 +569,13 @@ function App() {
         }
     };
 
+    if (page === 'privacy') {
+        return <PrivacyPolicyPage onNavigate={setPage} />;
+    }
+
     if (!authReady) return <div style={styles.body}></div>;
     
-    if (!user) return <LandingPage handleLogin={handleLogin} />;
+    if (!user) return <LandingPage handleLogin={handleLogin} onNavigate={setPage} />;
     
     return (
         <div style={styles.appContainer}>
@@ -569,15 +584,25 @@ function App() {
                  <NeuralNetworkAnimation />
                 {!isDesktop && <button onClick={() => setIsSidebarOpen(true)} style={{ position:'fixed',top:'1rem',left:'1rem',zIndex:50,background:'rgba(30,41,59,0.5)',border:'none',padding:'0.5rem',borderRadius:'8px',color:'white',cursor:'pointer' }}><MenuIcon /></button>}
                 {activeChatId ? (
-                     <ChatScreen 
-                        messages={messages} 
-                        userInput={userInput} 
-                        setUserInput={setUserInput} 
-                        handleSendMessage={handleSendMessage} 
-                        loading={loading} 
-                        localPredictions={localPredictions} 
-                        conversationStage={conversationStage}
-                    />
+                     <div style={styles.chatScreen}>
+                        <div style={styles.chatMessagesContainer}>
+                            {messages.map((msg, index) => <ChatMessage key={index} message={msg} />)}
+                            <InitialAnalysisCard predictions={localPredictions} />
+                            <div ref={chatEndRef} />
+                        </div>
+                        <div style={{ borderTop: `1px solid ${styles.colors.subtleBorder}`}}>
+                            <form onSubmit={handleSendMessage} style={styles.chatInputContainer}>
+                                <input type="text" value={userInput} onChange={(e) => setUserInput(e.target.value)}
+                                    placeholder="Describe your symptoms..."
+                                    style={styles.chatInput}
+                                    disabled={loading}
+                                />
+                                <button type="submit" style={styles.sendButton} disabled={loading}>
+                                    {loading ? <div style={{width:'20px',height:'20px',border:'2px solid #a3a3a3',borderTopColor:'#f5f5f5',borderRadius:'50%',animation:'spin 1s linear infinite'}} /> : <SendIcon />}
+                                </button>
+                            </form>
+                        </div>
+                    </div>
                 ) : ( <WelcomeScreen onNewChat={startNewChat} /> )}
             </main>
         </div>
@@ -585,4 +610,3 @@ function App() {
 }
 
 export default App;
-
