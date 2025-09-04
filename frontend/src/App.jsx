@@ -5,7 +5,6 @@ import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
-
 // --- Firebase & API Layer (Defined before Components) ---
 const firebaseConfig = {
     apiKey: import.meta.env.VITE_API_KEY,
@@ -24,13 +23,11 @@ getFirestore(app);
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
 const api = {
     getPrediction: async (symptoms) => (await axios.post(`${API_BASE}/predict`, { symptoms })).data || [],
-    chatWithAI: async (history, predictions, userDetails, image_provided) => {
-        return (await axios.post(`${API_BASE}/chat`, { history, local_predictions: predictions, user_details: userDetails, image_provided })).data;
+    chatWithAI: async (history, predictions, location) => {
+        return (await axios.post(`${API_BASE}/chat`, { history, local_predictions: predictions, location })).data;
     },
     getChats: async (userId) => (await axios.post(`${API_BASE}/get_chats`, { user_id: userId })).data || [],
     saveChat: async (userId, chatData) => await axios.post(`${API_BASE}/save_chat`, { userId, chatData }),
-    getUserProfile: async (userId) => (await axios.post(`${API_BASE}/get_profile`, { user_id: userId })).data,
-    saveUserProfile: async (userId, profileData) => await axios.post(`${API_BASE}/save_profile`, { user_id: userId, profile_data: profileData }),
 };
 
 // --- Styles ---
@@ -38,7 +35,7 @@ const styles = {
     colors: {
         background: '#0a0a0a', surface: '#1a1a1a', primaryText: '#f5f5f5',
         secondaryText: '#a3a3a3', accent: '#2563eb', accentHover: '#1d4ed8',
-        glow: 'rgba(37, 99, 235, 0.5)', subtleBorder: '#262626',
+        glow: 'rgba(59, 130, 246, 0.7)', subtleBorder: '#262626',
     },
     fontFamily: "'Roboto', 'Inter', system-ui, -apple-system, sans-serif",
     body: {
@@ -70,7 +67,7 @@ const styles = {
     },
     backgroundCanvas: {
         position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
-        zIndex: 0, opacity: 0.2
+        zIndex: 0, opacity: 0.4 // Increased opacity for more visibility
     },
     landingContent: { zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' },
     landingTitle: {
@@ -112,7 +109,7 @@ const styles = {
         transition: 'background-color 0.2s, color 0.2s', cursor: 'pointer',
     },
     chatListItemActive: { backgroundColor: '#262626', color: '#f5f5f5' },
-    chatScreen: { display: 'flex', flexDirection: 'column', height: '100%', zIndex: 1, backgroundColor: 'rgba(10,10,10,0.5)', backdropFilter: 'blur(2px)' },
+    chatScreen: { display: 'flex', flexDirection: 'column', height: '100%', zIndex: 1, backgroundColor: 'rgba(10,10,10,0.6)', backdropFilter: 'blur(3px)' },
     chatMessagesContainer: { flexGrow: 1, padding: '32px', overflowY: 'auto' },
     messageBubble: {
         padding: '1rem 1.5rem', borderRadius: '1.5rem', maxWidth: '75%',
@@ -193,7 +190,7 @@ const LocationIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" he
 // --- Helper Components ---
 const NeuralNetworkAnimation = () => {
     const canvasRef = useRef(null);
-    const mouse = useRef({ x: undefined, y: undefined, radius: 100 });
+    const mouse = useRef({ x: undefined, y: undefined, radius: 150 });
 
     useEffect(() => {
         const canvas = canvasRef.current; if (!canvas) return;
@@ -204,6 +201,10 @@ const NeuralNetworkAnimation = () => {
             mouse.current.x = event.clientX - rect.left;
             mouse.current.y = event.clientY - rect.top;
         };
+        const handleMouseLeave = () => {
+            mouse.current.x = undefined;
+            mouse.current.y = undefined;
+        }
 
         const resizeCanvas = () => {
             if (canvas.parentElement) {
@@ -211,13 +212,13 @@ const NeuralNetworkAnimation = () => {
                 canvas.height = canvas.parentElement.offsetHeight;
             }
         };
-        let particles = []; const particleCount = 80;
+        let particles = []; const particleCount = 100; // More particles
         class Particle {
             constructor() {
                 this.x = Math.random() * (canvas.width || 0); this.y = Math.random() * (canvas.height || 0);
                 this.baseX = this.x; this.baseY = this.y;
-                this.density = (Math.random() * 30) + 1;
-                this.vx = (Math.random() - 0.5) * 0.5; this.vy = (Math.random() - 0.5) * 0.5;
+                this.density = (Math.random() * 40) + 5;
+                this.vx = (Math.random() - 0.5) * 0.6; this.vy = (Math.random() - 0.5) * 0.6;
                 this.radius = Math.random() * 1.5 + 1;
             }
             update() {
@@ -232,11 +233,11 @@ const NeuralNetworkAnimation = () => {
                         let force = (maxDistance - distance) / maxDistance;
                         let directionX = forceDirectionX * force * this.density;
                         let directionY = forceDirectionY * force * this.density;
-                        this.x -= directionX * 0.2;
-                        this.y -= directionY * 0.2;
+                        this.x -= directionX * 0.1;
+                        this.y -= directionY * 0.1;
                     } else {
-                         if (this.x !== this.baseX) this.x -= (this.x - this.baseX) / 10;
-                         if (this.y !== this.baseY) this.y -= (this.y - this.baseY) / 10;
+                         if (this.x !== this.baseX) this.x -= (this.x - this.baseX) / 20;
+                         if (this.y !== this.baseY) this.y -= (this.y - this.baseY) / 20;
                     }
                 }
                 this.x += this.vx; this.y += this.vy;
@@ -245,7 +246,8 @@ const NeuralNetworkAnimation = () => {
             }
             draw() {
                 ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-                ctx.fillStyle = styles.colors.glow; ctx.fill();
+                ctx.fillStyle = `rgba(59, 130, 246, ${Math.random() * 0.5 + 0.5})`; // Brighter, flickering effect
+                ctx.fill();
             }
         }
         const init = () => {
@@ -255,9 +257,10 @@ const NeuralNetworkAnimation = () => {
             for (let i = 0; i < particles.length; i++) {
                 for (let j = i; j < particles.length; j++) {
                     const distance = Math.hypot(particles[i].x - particles[j].x, particles[i].y - particles[j].y);
-                    if (distance < 100) { 
-                        const opacityValue = 1 - (distance/100);
-                        ctx.strokeStyle = `rgba(37, 99, 235, ${opacityValue * 0.4})`; ctx.lineWidth = 1;
+                    if (distance < 120) { 
+                        const opacityValue = 1 - (distance/120);
+                        ctx.strokeStyle = `rgba(59, 130, 246, ${opacityValue * 0.6})`; // Brighter lines
+                        ctx.lineWidth = 1;
                         ctx.beginPath(); ctx.moveTo(particles[i].x, particles[i].y); ctx.lineTo(particles[j].x, particles[j].y); ctx.stroke();
                     }
                 }
@@ -274,17 +277,18 @@ const NeuralNetworkAnimation = () => {
         const timeoutId = setTimeout(() => { resizeCanvas(); init(); animate(); }, 0);
         
         window.addEventListener('mousemove', handleMouseMove);
+        window.addEventListener('mouseleave', handleMouseLeave);
         window.addEventListener('resize', resizeCanvas);
 
         return () => {
             window.removeEventListener('mousemove', handleMouseMove);
+            window.removeEventListener('mouseleave', handleMouseLeave);
             window.removeEventListener('resize', resizeCanvas);
             cancelAnimationFrame(animationFrameId); clearTimeout(timeoutId);
         };
     }, []);
     return <canvas ref={canvasRef} style={styles.backgroundCanvas} />;
 };
-
 const LandingPage = ({ handleLogin, onNavigate }) => (
     <div style={styles.landingContainer}>
         <header style={styles.landingHeader}>
@@ -404,24 +408,41 @@ const PrivacyPolicyPage = ({ onNavigate }) => (
             <h1 style={styles.privacyTitle}>Privacy Policy for Aether</h1>
             <p style={styles.privacyText}><strong>Last Updated:</strong> September 4, 2025</p>
             
-            <h2 style={styles.privacySectionTitle}>1. Information We Collect</h2>
+            <h2 style={styles.privacySectionTitle}>1. Introduction</h2>
+            <p style={styles.privacyText}>Welcome to Aether. We are committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our application. By using Aether, you agree to the collection and use of information in accordance with this policy.</p>
+
+            <h2 style={styles.privacySectionTitle}>2. Information We Collect</h2>
             <p style={styles.privacyText}>
                 <ul>
-                    <li><strong>Personal Information:</strong> When you sign in via Google, we receive your name, email, and profile picture.</li>
-                    <li><strong>Health Data:</strong> We collect the symptoms and health-related information you voluntarily provide.</li>
-                    <li><strong>Location Information:</strong> With your permission, we collect your approximate location.</li>
-                    <li><strong>Usage Data:</strong> We may collect diagnostic data like IP address and browser type.</li>
+                    <li><strong>Personal Data:</strong> When you sign in using Google Authentication, we receive your name, email address, and profile picture. We do not collect any passwords.</li>
+                    <li><strong>Health & Symptom Data:</strong> We collect the symptoms, medical history, and other health-related information you voluntarily provide in your conversations with the Aether assistant. This data is essential for the AI to provide a relevant analysis.</li>
+                    <li><strong>Location Information:</strong> With your explicit permission, we collect your approximate geographical location (city, country) to provide more contextually relevant analysis and potential local health insights. You can deny this permission.</li>
+                    <li><strong>Usage Data:</strong> We may automatically collect information on how the service is accessed and used. This may include your IP address, browser type, device information, and diagnostic data to help us improve service stability and performance.</li>
                 </ul>
             </p>
 
-            <h2 style={styles.privacySectionTitle}>2. How We Use Your Information</h2>
+            <h2 style={styles.privacySectionTitle}>3. How We Use Your Information</h2>
              <p style={styles.privacyText}>
                 <ul>
-                    <li><strong>To Provide Service:</strong> Your data is sent to Google's Gemini API to generate responses.</li>
-                    <li><strong>To Manage Your Account:</strong> We use Google Authentication for user management.</li>
-                    <li><strong>To Store Your History:</strong> Chats are stored in Google's Firebase Firestore.</li>
+                    <li><strong>To Provide and Maintain Our Service:</strong> Your health data is processed by our machine learning models and sent to Google's Gemini API to generate responses.</li>
+                    <li><strong>To Manage Your Account:</strong> We use Google Authentication to create and secure your user account.</li>
+                    <li><strong>To Store Your Chat History:</strong> Your conversations are securely stored in Google's Firebase Firestore database, linked to your user account, allowing you to review them later.</li>
+                    <li><strong>For Service Improvement:</strong> Anonymized and aggregated data may be used to analyze trends and improve the accuracy and helpfulness of our models and services.</li>
                 </ul>
             </p>
+
+             <h2 style={styles.privacySectionTitle}>4. Data Sharing and Disclosure</h2>
+             <p style={styles.privacyText}>We do not sell, trade, or rent your personal data. Your information is shared only with the following essential third-party service providers under strict confidentiality agreements:</p>
+             <ul>
+                <li><strong>Google LLC:</strong> For user authentication (Google Sign-In), database storage (Firestore), and AI processing (Gemini API). You can review <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" style={styles.privacyLink}>Google's Privacy Policy here</a>.</li>
+             </ul>
+             <p style={styles.privacyText}>We may also disclose your data if required by law or to protect the rights, property, or safety of our company, our users, or the public.</p>
+
+            <h2 style={styles.privacySectionTitle}>5. Data Security</h2>
+            <p style={styles.privacyText}>We prioritize the security of your data and rely on the robust, industry-standard security measures provided by Google Cloud services, including data encryption in transit and at rest. While we strive to use commercially acceptable means to protect your Personal Information, we cannot guarantee its absolute security as no method of transmission over the Internet is 100% secure.</p>
+
+            <h2 style={styles.privacySectionTitle}>6. Contact Us</h2>
+            <p style={styles.privacyText}>If you have any questions about this Privacy Policy, please contact us at gargsatvik31@outlook.com.</p>
         </main>
     </div>
 );
@@ -438,7 +459,7 @@ function App() {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [authReady, setAuthReady] = useState(false);
     const [userLocation, setUserLocation] = useState('Locating...');
-    const [page, setPage] = useState('home'); // 'home', 'privacy'
+    const [page, setPage] = useState('home');
     
     const isDesktop = useMediaQuery('(min-width: 1024px)');
     const chatEndRef = useRef(null);
@@ -589,4 +610,3 @@ function App() {
 }
 
 export default App;
-
