@@ -523,11 +523,33 @@ const ChatHistorySidebar = ({ chats, onSelectChat, activeChatId, onNewChat, user
 };
 const ChatMessage = ({ message }) => {
     const isUser = message.role === "user";
+
+    // A simple parser to convert markdown-like bold to JSX
+    const renderContent = (content) => {
+        // Return a single element to avoid key warnings for non-array returns
+        if (!content.includes('**')) {
+            return content;
+        }
+
+        // Split by the bold delimiter and process the parts
+        const parts = content.split(/(\*\*.*?\*\*)/g).filter(Boolean);
+        return (
+            <>
+                {parts.map((part, index) => {
+                    if (part.startsWith('**') && part.endsWith('**')) {
+                        return <strong key={index} style={{ color: styles.colors.primaryText }}>{part.slice(2, -2)}</strong>;
+                    }
+                    return <span key={index}>{part}</span>;
+                })}
+            </>
+        );
+    };
+
     return (
         <div style={{ display:'flex', margin:'1rem 0', gap:'12px', justifyContent: isUser ? "flex-end" : "flex-start" }}>
             {!isUser && <div style={{width:'32px',height:'32px',backgroundColor:'#1E1E1E',borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><AetherLogoSVG /></div>}
             <div style={{...styles.messageBubble, ...(isUser ? styles.userMessage : styles.modelMessage)}}>
-                <p style={{ margin: 0 }}>{message.content}</p>
+                <p style={{ margin: 0 }}>{renderContent(message.content)}</p>
             </div>
         </div>
     );
@@ -683,10 +705,12 @@ const MainApplication = () => {
             let chips = [];
 
             // Parse for [CHIPS:...]
-            const chipMatch = modelReply.match(/\[CHIPS: (.*?)\]/);
+            const chipMatch = modelReply.match(/\[CHIPS: (.*?)\]/s);
             if (chipMatch && chipMatch[1]) {
                 try {
-                    chips = JSON.parse(chipMatch[1]);
+                    // Sanitize string for more robust JSON parsing (handles single quotes)
+                    const chipString = chipMatch[1].replace(/'/g, '"');
+                    chips = JSON.parse(chipString);
                     modelReply = modelReply.replace(chipMatch[0], '').trim();
                 } catch (error) {
                     console.error("Failed to parse chips:", error);
@@ -697,7 +721,9 @@ const MainApplication = () => {
             const summaryMatch = modelReply.match(/\[SUMMARY: (\{.*?\})\]/s);
             if (summaryMatch && summaryMatch[1]) {
                 try {
-                    const summary = JSON.parse(summaryMatch[1]);
+                     // Sanitize string for more robust JSON parsing
+                    const summaryString = summaryMatch[1].replace(/'/g, '"');
+                    const summary = JSON.parse(summaryString);
                     const trailingText = modelReply.replace(summaryMatch[0], '').trim();
                     
                     modelReply = `**Summary:**\n${summary.recap}\n\n` +
@@ -810,6 +836,7 @@ function App() {
 }
 
 export default App;
+
 
 
 
