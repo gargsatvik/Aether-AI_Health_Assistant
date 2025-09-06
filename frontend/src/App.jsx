@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { v4 as uuidv4 } from "uuid";
 import axios from "axios";
 import { initializeApp } from "firebase/app";
+import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
@@ -173,6 +174,7 @@ const SendIcon = () => <svg style={{width:'20px',height:'20px'}} viewBox="0 0 24
 const PlusIcon = () => <svg style={{width:'20px',height:'20px'}} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>;
 const SignOutIcon = () => <svg style={{width:'20px',height:'20px'}} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>;
 const MenuIcon = () => <svg style={{width:'24px',height:'24px'}} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>;
+const XIcon = () => <svg style={{width:'24px',height:'24px'}} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>;
 const BrainCircuitIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a10 10 0 0 0-10 10c0 1.85.54 3.58 1.48 5.04M12 22a10 10 0 0 0 10-10c0-1.85-.54-3.58-1.48-5.04M12 2v20m6.5-15.5-.42.42c-1.33 1.33-2.08 3.12-2.08 4.95v.21c0 1.83.75 3.62 2.08 4.95l.42.42m0-15-.42-.42c-1.33-1.33-2.08-3.12-2.08-4.95v-.21c0-1.83.75-3.62 2.08-4.95l.42-.42m-13 15 .42.42c1.33 1.33 2.08 3.12 2.08 4.95v.21c0 1.83-.75 3.62-2.08 4.95l-.42.42m0-15 .42-.42c1.33-1.33-2.08-3.12-2.08-4.95v-.21c0-1.83-.75-3.62-2.08-4.95l-.42-.42" /></svg>;
 const LocationIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" /><circle cx="12" cy="10" r="3" /></svg>;
 
@@ -225,8 +227,8 @@ const NeuralNetworkAnimation = () => {
                         this.x -= directionX * 0.1;
                         this.y -= directionY * 0.1;
                     } else {
-                         if (this.x !== this.baseX) this.x -= (this.x - this.baseX) / 20;
-                         if (this.y !== this.baseY) this.y -= (this.y - this.baseY) / 20;
+                        if (this.x !== this.baseX) this.x -= (this.x - this.baseX) / 20;
+                        if (this.y !== this.baseY) this.y -= (this.y - this.baseY) / 20;
                     }
                 }
                 this.x += this.vx; this.y += this.vy;
@@ -278,6 +280,62 @@ const NeuralNetworkAnimation = () => {
     }, []);
     return <canvas ref={canvasRef} style={styles.backgroundCanvas} />;
 };
+
+const PrivacyPolicyPage = () => (
+    <div style={{...styles.body, ...styles.landingContainer, height: 'auto', minHeight: '100vh', overflowY: 'auto'}}>
+        <header style={{...styles.landingHeader, width: '100%', maxWidth: '800px', margin: '0 auto', boxSizing: 'border-box' }}>
+            <Link to="/" style={{ color: styles.colors.primaryText, textDecoration: 'none', fontWeight: 'bold', fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5m7 7-7-7 7-7"/></svg>
+                Back to App
+            </Link>
+        </header>
+        <main style={{...styles.landingMain, justifyContent: 'flex-start', alignItems: 'flex-start', textAlign: 'left', maxWidth: '800px', margin: 'auto', padding: '0 32px 64px 32px' }}>
+            <h1 style={{...styles.landingTitle, fontSize: '2.5rem', margin: '2rem 0 1rem' }}>Privacy Policy for Aether</h1>
+            <p style={{...styles.landingSubtitle, maxWidth: '100%', margin: '0 0 2rem 0'}}>Last Updated: September 7, 2025</p>
+            
+            <p style={{...styles.landingSubtitle, maxWidth: '100%'}}>This Privacy Policy describes our policies and procedures on the collection, use, and disclosure of your information when you use the Aether application (the "Service"). By using the Service, you agree to the collection and use of information in accordance with this policy.</p>
+
+            <h2 style={{ color: styles.colors.primaryText, fontSize: '1.5rem', marginTop: '2rem' }}>1. Information We Collect</h2>
+            <p style={{...styles.landingSubtitle, maxWidth: '100%'}}>We collect information that you provide directly to us and information that is collected automatically.</p>
+            <h3 style={{ color: styles.colors.primaryText, marginTop: '1rem' }}>Information You Provide:</h3>
+            <ul style={{ paddingLeft: '20px', color: styles.colors.secondaryText, lineHeight: 1.6 }}>
+                <li><b>Account Information:</b> When you sign in using Google Authentication, we receive your name, email address, and profile picture as provided by Google.</li>
+                <li><b>Health & Symptom Data:</b> We collect the symptoms, age, sex, and other health-related information you voluntarily provide in your conversations with the Aether assistant.</li>
+            </ul>
+            <h3 style={{ color: styles.colors.primaryText, marginTop: '1rem' }}>Information Collected Automatically:</h3>
+            <ul style={{ paddingLeft: '20px', color: styles.colors.secondaryText, lineHeight: 1.6 }}>
+                <li><b>Location Information:</b> With your explicit permission, we may collect your approximate geographical location (city, country) from your browser to provide more contextually relevant analysis. You can enable or disable location services at any time through your device settings.</li>
+                <li><b>Usage Data:</b> Like most web services, we may automatically collect diagnostic data, such as your IP address, browser type, and device information, to maintain and improve the service.</li>
+            </ul>
+
+            <h2 style={{ color: styles.colors.primaryText, fontSize: '1.5rem', marginTop: '2rem' }}>2. How We Use Your Information</h2>
+            <p style={{...styles.landingSubtitle, maxWidth: '100%'}}>Your information is used for the following purposes:</p>
+            <ul style={{ paddingLeft: '20px', color: styles.colors.secondaryText, lineHeight: 1.6 }}>
+                <li><b>To Provide and Maintain the Service:</b> Your symptom data and conversation history are sent to Google's Gemini API to generate responses from the AI assistant. Your location, if provided, helps tailor the analysis.</li>
+                <li><b>To Manage Your Account:</b> We use Google Authentication to create and secure your user account.</li>
+                <li><b>To Store Your Chat History:</b> Your conversations are securely stored in Google's Firebase Firestore database, linked to your user account, allowing you to review them later.</li>
+                <li><b>To Improve Our Service:</b> Anonymized and aggregated data may be used to analyze trends and improve the accuracy, safety, and functionality of our models and services.</li>
+            </ul>
+
+            <h2 style={{ color: styles.colors.primaryText, fontSize: '1.5rem', marginTop: '2rem' }}>3. Data Sharing and Disclosure</h2>
+            <p style={{...styles.landingSubtitle, maxWidth: '100%'}}>We are committed to not selling or renting your personal data to third parties. Your information is shared only with the following essential service providers to make the application function:</p>
+            <ul style={{ paddingLeft: '20px', color: styles.colors.secondaryText, lineHeight: 1.6 }}>
+                <li><b>Google LLC:</b> For user authentication (Google Sign-In), database storage (Firestore), and AI processing (Gemini API). All data is handled according to Google's robust security and privacy policies. You can review the Google Privacy Policy for more information.</li>
+            </ul>
+            <p style={{...styles.landingSubtitle, maxWidth: '100%'}}>We may also disclose your data if required by law or to protect the rights, property, or safety of our company, our users, or the public.</p>
+
+            <h2 style={{ color: styles.colors.primaryText, fontSize: '1.5rem', marginTop: '2rem' }}>4. Data Security</h2>
+            <p style={{...styles.landingSubtitle, maxWidth: '100%'}}>The security of your data is a top priority. We rely on the industry-standard security measures provided by Google Cloud services, including data encryption in transit (TLS) and at rest. While we strive to use commercially acceptable means to protect your information, no method of transmission over the Internet is 100% secure.</p>
+
+            <h2 style={{ color: styles.colors.primaryText, fontSize: '1.5rem', marginTop: '2rem' }}>5. Contact Us</h2>
+            <p style={{...styles.landingSubtitle, maxWidth: '100%'}}>If you have any questions about this Privacy Policy, please contact us:</p>
+            <ul style={{ paddingLeft: '20px', color: styles.colors.secondaryText, lineHeight: 1.6 }}>
+                <li><b>By Email:</b> gargsatvik31@outlook.com</li>
+            </ul>
+        </main>
+    </div>
+);
+
 const LandingPage = ({ handleLogin }) => (
     <div style={styles.landingContainer}>
         <header style={styles.landingHeader}>
@@ -309,7 +367,7 @@ const LandingPage = ({ handleLogin }) => (
         <footer style={styles.landingFooter}>
             <a href="https://github.com/gargsatvik" target="_blank" rel="noopener noreferrer" style={{fontSize: '14px', color: '#a3a3a3', textDecoration: 'none'}}>My GitHub</a>
             <a href="https://github.com/gargsatvik/Health-app" target="_blank" rel="noopener noreferrer" style={{fontSize: '14px', color: '#a3a3a3', textDecoration: 'none'}}>Project Repo</a>
-            <a href="/privacy" style={{fontSize: '14px', color: '#a3a3a3', textDecoration: 'none'}}>Privacy Policy</a>
+            <Link to="/privacy" style={{fontSize: '14px', color: '#a3a3a3', textDecoration: 'none'}}>Privacy Policy</Link>
         </footer>
     </div>
 );
@@ -317,7 +375,7 @@ const InitialAnalysisCard = ({ predictions }) => {
     if (!predictions || predictions.length === 0) return null;
     return (
         <div style={styles.analysisCard}>
-            <h3 style={styles.analysisTitle}><BrainCircuitIcon /> Initial Analysis</h3>
+            <h3 style={{ ...styles.analysisTitle, color: styles.colors.primaryText, display: 'flex', alignItems: 'center', gap: '8px' }}><BrainCircuitIcon /> Initial Analysis</h3>
             {predictions.map((p, i) => (
                 <div key={i} style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'0.5rem',fontSize:'14px'}}>
                     <span style={{minWidth:'100px',flexShrink:0,color:styles.colors.secondaryText}}>{p.disease}</span>
@@ -390,7 +448,7 @@ const ChatScreen = ({ messages, userInput, setUserInput, handleSendMessage, load
     const chatEndRef = useRef(null);
     useEffect(() => {
         chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, [messages, localPredictions]);
+    }, [messages, localpredictions]);
 
     return (
         <div style={styles.chatScreen}>
@@ -426,8 +484,8 @@ const ChatScreen = ({ messages, userInput, setUserInput, handleSendMessage, load
     );
 };
 
-// --- Main App Component ---
-function App() {
+// --- Main Application Component (for the main route) ---
+const MainApplication = () => {
     const [user, setUser] = useState(null);
     const [chats, setChats] = useState([]);
     const [activeChatId, setActiveChatId] = useState(null);
@@ -436,19 +494,10 @@ function App() {
     const [userInput, setUserInput] = useState("");
     const [loading, setLoading] = useState(false);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-    const [authReady, setAuthReady] = useState(false);
     const [userLocation, setUserLocation] = useState('Locating...');
     const [conversationStage, setConversationStage] = useState('greeting');
     
     const isDesktop = useMediaQuery('(min-width: 1024px)');
-    
-    useEffect(() => {
-        Object.assign(document.body.style, styles.body);
-        const styleSheet = document.createElement("style");
-        styleSheet.innerText = `@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Inter:wght@600;700&display=swap'); @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`;
-        document.head.appendChild(styleSheet);
-        return () => { styleSheet.parentNode?.removeChild(styleSheet); };
-    }, []);
 
     useEffect(() => {
         const unsubscribe = auth.onAuthStateChanged(async (currentUser) => {
@@ -458,7 +507,6 @@ function App() {
             } else {
                 setUser(null); setChats([]); setActiveChatId(null); setMessages([]);
             }
-            setAuthReady(true);
         });
         return () => unsubscribe();
     }, []);
@@ -558,9 +606,9 @@ function App() {
         }
     };
 
-    if (!authReady) return <div style={styles.body}></div>;
-    
-    if (!user) return <LandingPage handleLogin={handleLogin} />;
+    if (!user) {
+        return <LandingPage handleLogin={handleLogin} />;
+    }
     
     return (
         <div style={styles.appContainer}>
@@ -584,5 +632,38 @@ function App() {
     );
 }
 
-export default App;
+// --- App Component (Router Logic) ---
+function App() {
+    const [authReady, setAuthReady] = useState(false);
+    
+    useEffect(() => {
+        Object.assign(document.body.style, styles.body);
+        const styleSheet = document.createElement("style");
+        styleSheet.innerText = `@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Inter:wght@600;700&display=swap'); @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`;
+        document.head.appendChild(styleSheet);
+        
+        const unsubscribe = auth.onAuthStateChanged(() => {
+            setAuthReady(true);
+        });
 
+        return () => { 
+            styleSheet.parentNode?.removeChild(styleSheet);
+            unsubscribe();
+        };
+    }, []);
+
+    if (!authReady) {
+        return <div style={styles.body}></div>;
+    }
+    
+    return (
+        <BrowserRouter>
+            <Routes>
+                <Route path="/privacy" element={<PrivacyPolicyPage />} />
+                <Route path="/" element={<MainApplication />} />
+            </Routes>
+        </BrowserRouter>
+    );
+}
+
+export default App;
