@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { v4 as uuidv4 } from "uuid";
 import axios from "axios";
 import { initializeApp } from "firebase/app";
-import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Link, useLocation } from "react-router-dom";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
@@ -281,12 +281,32 @@ const NeuralNetworkAnimation = () => {
     return <canvas ref={canvasRef} style={styles.backgroundCanvas} />;
 };
 
-// --- Privacy Policy Page Component (Updated Version) ---
+// --- New Component to handle body styles based on route ---
+const PageStyler = () => {
+    const location = useLocation();
+    useEffect(() => {
+        if (location.pathname === '/privacy') {
+            // Apply styles for a scrollable page
+            Object.assign(document.body.style, {
+                margin: 0,
+                fontFamily: styles.fontFamily,
+                backgroundColor: styles.colors.background,
+                color: styles.colors.secondaryText,
+                height: 'auto',
+                overflowY: 'auto'
+            });
+        } else {
+            // Apply original, non-scrollable styles for the main app
+            Object.assign(document.body.style, styles.body);
+        }
+    }, [location.pathname]); // Re-run when the path changes
+
+    return null; // This component does not render anything
+};
+
 const PrivacyPolicyPage = () => (
-    // Style overrides for scrollability and a clean background
-    <div style={{...styles.body, height: 'auto', minHeight: '100vh', overflowY: 'auto'}}>
-        
-        {/* Header with a back link */}
+    // The root div no longer needs complex style overrides
+    <div>
         <header style={{
             ...styles.landingHeader, 
             maxWidth: '850px', 
@@ -314,7 +334,6 @@ const PrivacyPolicyPage = () => (
             </Link>
         </header>
 
-        {/* Main content with improved readability */}
         <main style={{
             ...styles.landingMain,
             justifyContent: 'flex-start', 
@@ -322,7 +341,8 @@ const PrivacyPolicyPage = () => (
             textAlign: 'left', 
             maxWidth: '800px', 
             margin: '0 auto', 
-            padding: '16px 24px 80px 24px' 
+            padding: '16px 24px 80px 24px',
+            overflow: 'visible' // Ensure main content doesn't hide anything
         }}>
             <h1 style={{...styles.landingTitle, fontSize: 'clamp(2rem, 5vw, 2.75rem)', margin: '2rem 0 1rem' }}>Privacy Policy for Aether</h1>
             <p style={{...styles.landingSubtitle, maxWidth: '100%', margin: '0 0 2.5rem 0', color: styles.colors.secondaryText}}>
@@ -373,7 +393,6 @@ const PrivacyPolicyPage = () => (
         </main>
     </div>
 );
-
 
 const LandingPage = ({ handleLogin }) => (
     <div style={styles.landingContainer}>
@@ -487,7 +506,7 @@ const ChatScreen = ({ messages, userInput, setUserInput, handleSendMessage, load
     const chatEndRef = useRef(null);
     useEffect(() => {
         chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, [messages, localpredictions]);
+    }, [messages, localPredictions]);
 
     return (
         <div style={styles.chatScreen}>
@@ -676,7 +695,7 @@ function App() {
     const [authReady, setAuthReady] = useState(false);
     
     useEffect(() => {
-        Object.assign(document.body.style, styles.body);
+        // This useEffect now ONLY handles the font/animation stylesheet and auth state.
         const styleSheet = document.createElement("style");
         styleSheet.innerText = `@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Inter:wght@600;700&display=swap'); @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`;
         document.head.appendChild(styleSheet);
@@ -692,11 +711,14 @@ function App() {
     }, []);
 
     if (!authReady) {
+        // Use the non-scrolling style for the initial blank loading screen
         return <div style={styles.body}></div>;
     }
     
     return (
         <BrowserRouter>
+            {/* This new component will manage the body styles for each route */}
+            <PageStyler /> 
             <Routes>
                 <Route path="/privacy" element={<PrivacyPolicyPage />} />
                 <Route path="/" element={<MainApplication />} />
@@ -706,3 +728,4 @@ function App() {
 }
 
 export default App;
+
