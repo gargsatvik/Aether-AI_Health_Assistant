@@ -704,24 +704,29 @@ const MainApplication = () => {
             let modelReply = res.reply;
             let chips = [];
 
-            // Parse for [CHIPS:...]
-            const chipMatch = modelReply.match(/\[CHIPS: (.*?)\]/s);
+            // More robust regex to find and parse [CHIPS: ...]
+            const chipRegex = /\[CHIPS:\s*(\[.*?\])\]/s;
+            const chipMatch = modelReply.match(chipRegex);
             if (chipMatch && chipMatch[1]) {
                 try {
-                    // Sanitize string for more robust JSON parsing (handles single quotes)
+                    // The captured group (chipMatch[1]) is the JSON array string.
+                    // Sanitize it to handle single quotes from the model if they appear.
                     const chipString = chipMatch[1].replace(/'/g, '"');
                     chips = JSON.parse(chipString);
-                    modelReply = modelReply.replace(chipMatch[0], '').trim();
                 } catch (error) {
-                    console.error("Failed to parse chips:", error);
+                    console.error("Failed to parse chips JSON:", chipMatch[1], error);
+                    // If parsing fails, chips will remain an empty array.
                 }
+                // Always remove the CHIPS tag from the displayed message.
+                modelReply = modelReply.replace(chipMatch[0], '').trim();
             }
 
-            // Parse for [SUMMARY:...]
-            const summaryMatch = modelReply.match(/\[SUMMARY: (\{.*?\})\]/s);
+            // More robust regex for [SUMMARY: ...]
+            const summaryRegex = /\[SUMMARY:\s*(\{.*?\})\]/s;
+            const summaryMatch = modelReply.match(summaryRegex);
             if (summaryMatch && summaryMatch[1]) {
                 try {
-                     // Sanitize string for more robust JSON parsing
+                     // Sanitize string to handle single quotes.
                     const summaryString = summaryMatch[1].replace(/'/g, '"');
                     const summary = JSON.parse(summaryString);
                     const trailingText = modelReply.replace(summaryMatch[0], '').trim();
@@ -733,9 +738,10 @@ const MainApplication = () => {
                                  trailingText;
 
                 } catch (error) {
-                    console.error("Failed to parse summary:", error);
-                    modelReply = modelReply.replace(summaryMatch[0], '').trim(); // Fallback
+                    console.error("Failed to parse summary JSON:", summaryMatch[1], error);
                 }
+                 // Always remove the SUMMARY tag from the displayed message.
+                modelReply = modelReply.replace(summaryMatch[0], '').trim();
             }
             
             setActionChips(chips);
@@ -836,7 +842,4 @@ function App() {
 }
 
 export default App;
-
-
-
 
