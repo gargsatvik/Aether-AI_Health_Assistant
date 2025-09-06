@@ -366,6 +366,7 @@ function App() {
             if (conversationStage === 'awaiting_symptoms') {
                 stageForBackend = 'process_symptoms';
             }
+            
 
             const res = await api.chatWithAI(history, localPredictions, stageForBackend); 
             let aiResponse = res.reply;
