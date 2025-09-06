@@ -215,8 +215,25 @@ const WelcomeScreen = ({ onNewChat }) => (
         <button onClick={onNewChat} style={styles.sidebarNewChatBtn}>Start New Chat</button>
     </div>
 );
-const SuggestionChips = ({ chips, onChipClick }) => { /* ... SuggestionChips component remains unchanged ... */ };
-const ChatSummaryCard = ({ summary }) => { /* ... ChatSummaryCard component remains unchanged ... */ };
+const SuggestionChips = ({ chips, onChipClick }) => (
+    <div style={styles.suggestionChipsContainer}>
+        {chips.map((chip, index) => (
+            <button key={index} style={styles.suggestionChip} onClick={() => onChipClick(chip)}>{chip}</button>
+        ))}
+    </div>
+);
+const ChatSummaryCard = ({ summary }) => {
+    return (
+        <div style={styles.summaryCard}>
+            <h3 style={styles.summaryTitle}>Consultation Summary</h3>
+            <div style={styles.summarySection}><p style={styles.summaryLabel}>Symptom Recap</p><p>{summary.recap}</p></div>
+            <div style={styles.summarySection}><p style={styles.summaryLabel}>Possible Causes</p><p>{summary.possibilities}</p></div>
+            <div style={styles.summarySection}><p style={styles.summaryLabel}>Home-Care Suggestions</p><ul style={{margin: 0, paddingLeft: '20px'}}>{summary.homeCare.map((item, i) => <li key={i}>{item}</li>)}</ul></div>
+            <div style={styles.summarySection}><p style={styles.summaryLabel}>Recommendation</p><p style={{fontWeight: 'bold'}}>{summary.recommendation}</p></div>
+            <p>{summary.conclusion}</p>
+        </div>
+    );
+};
 
 const ChatScreen = ({ messages, userInput, setUserInput, handleSendMessage, loading, localPredictions, conversationStage, onChipClick, suggestionChips, chatSummary, isChatConcluded }) => {
     const chatEndRef = useRef(null);
