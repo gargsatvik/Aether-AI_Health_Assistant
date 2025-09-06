@@ -115,6 +115,7 @@ const styles = {
     messageBubble: {
         padding: '1rem 1.5rem', borderRadius: '1.5rem', maxWidth: '75%',
         color: '#f5f5f5', lineHeight: '1.5', wordWrap: 'break-word',
+        whiteSpace: 'pre-wrap',
     },
     userMessage: {
         backgroundColor: '#2563eb',
@@ -148,6 +149,23 @@ const styles = {
         gap: '0.75rem', fontSize: '14px', color: '#a3a3a3',
         borderTop: '1px solid #262626',
     },
+    chip: {
+        padding: '8px 16px',
+        backgroundColor: 'rgba(38, 38, 38, 0.8)',
+        border: `1px solid ${'#262626'}`,
+        color: '#f5f5f5',
+        borderRadius: '16px',
+        cursor: 'pointer',
+        transition: 'all 0.2s ease',
+        fontSize: '14px',
+    },
+    chipContainer: {
+        display: 'flex',
+        flexWrap: 'wrap',
+        gap: '8px',
+        justifyContent: 'center',
+        padding: '0 32px 16px 32px',
+    }
 };
 
 // --- Helper Hook ---
@@ -179,6 +197,25 @@ const BrainCircuitIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="16
 const LocationIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" /><circle cx="12" cy="10" r="3" /></svg>;
 
 // --- Helper Components ---
+const MessageChips = ({ chips, onChipClick }) => {
+    if (!chips || chips.length === 0) return null;
+    return (
+        <div style={styles.chipContainer}>
+            {chips.map((chip, index) => (
+                <button 
+                    key={index} 
+                    style={styles.chip}
+                    onMouseOver={(e) => { e.currentTarget.style.backgroundColor = styles.colors.accent; e.currentTarget.style.borderColor = styles.colors.accent; }}
+                    onMouseOut={(e) => { e.currentTarget.style.backgroundColor = 'rgba(38, 38, 38, 0.8)'; e.currentTarget.style.borderColor = styles.colors.subtleBorder; }}
+                    onClick={() => onChipClick(chip)}
+                >
+                    {chip}
+                </button>
+            ))}
+        </div>
+    );
+};
+
 const NeuralNetworkAnimation = () => {
     const canvasRef = useRef(null);
     const mouse = useRef({ x: undefined, y: undefined, radius: 150 });
@@ -502,7 +539,7 @@ const WelcomeScreen = ({ onNewChat }) => (
         <button onClick={onNewChat} style={styles.sidebarNewChatBtn}>Start New Chat</button>
     </div>
 );
-const ChatScreen = ({ messages, userInput, setUserInput, handleSendMessage, loading, localPredictions, conversationStage }) => {
+const ChatScreen = ({ messages, userInput, setUserInput, handleSendMessage, loading, localPredictions, conversationStage, actionChips, onChipClick }) => {
     const chatEndRef = useRef(null);
     useEffect(() => {
         chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -518,7 +555,8 @@ const ChatScreen = ({ messages, userInput, setUserInput, handleSendMessage, load
                 <div ref={chatEndRef} />
             </div>
             <div style={{ borderTop: `1px solid ${styles.colors.subtleBorder}`}}>
-                <form onSubmit={handleSendMessage} style={styles.chatInputContainer}>
+                <MessageChips chips={actionChips} onChipClick={onChipClick} />
+                <form onSubmit={(e) => handleSendMessage(e)} style={styles.chatInputContainer}>
                     <input
                         type="text"
                         value={userInput}
@@ -554,6 +592,7 @@ const MainApplication = () => {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [userLocation, setUserLocation] = useState('Locating...');
     const [conversationStage, setConversationStage] = useState('greeting');
+    const [actionChips, setActionChips] = useState([]);
     
     const isDesktop = useMediaQuery('(min-width: 1024px)');
 
@@ -614,11 +653,17 @@ const MainApplication = () => {
         setIsSidebarOpen(false);
     };
 
-    const handleSendMessage = async (e) => {
-        e.preventDefault();
-        if (!userInput.trim() || loading) return;
+    const handleChipClick = (chipText) => {
+        handleSendMessage(null, chipText);
+    };
 
-        const userMessage = { role: "user", content: userInput };
+    const handleSendMessage = async (e, messageOverride) => {
+        if (e) e.preventDefault();
+        const currentInput = messageOverride || userInput;
+        if (!currentInput.trim() || loading) return;
+
+        setActionChips([]);
+        const userMessage = { role: "user", content: currentInput };
         const updatedMessages = [...messages, userMessage];
         setMessages(updatedMessages);
         setUserInput("");
@@ -632,8 +677,43 @@ const MainApplication = () => {
                 stageForBackend = 'process_symptoms';
             }
 
-            const res = await api.chatWithAI(history, localPredictions, userLocation, stageForBackend); 
-            const finalMessages = [...updatedMessages, { role: "model", content: res.reply }];
+            const res = await api.chatWithAI(history, localPredictions, userLocation, stageForBackend);
+            
+            let modelReply = res.reply;
+            let chips = [];
+
+            // Parse for [CHIPS:...]
+            const chipMatch = modelReply.match(/\[CHIPS: (.*?)\]/);
+            if (chipMatch && chipMatch[1]) {
+                try {
+                    chips = JSON.parse(chipMatch[1]);
+                    modelReply = modelReply.replace(chipMatch[0], '').trim();
+                } catch (error) {
+                    console.error("Failed to parse chips:", error);
+                }
+            }
+
+            // Parse for [SUMMARY:...]
+            const summaryMatch = modelReply.match(/\[SUMMARY: (\{.*?\})\]/s);
+            if (summaryMatch && summaryMatch[1]) {
+                try {
+                    const summary = JSON.parse(summaryMatch[1]);
+                    const trailingText = modelReply.replace(summaryMatch[0], '').trim();
+                    
+                    modelReply = `**Summary:**\n${summary.recap}\n\n` +
+                                 `**Possible Causes:**\n${summary.possibilities}\n\n` +
+                                 `**Home Care Advice:**\n${summary.homeCare.map(item => `• ${item}`).join('\n')}\n\n` +
+                                 `**Recommendation:**\n${summary.recommendation}\n\n` +
+                                 trailingText;
+
+                } catch (error) {
+                    console.error("Failed to parse summary:", error);
+                    modelReply = modelReply.replace(summaryMatch[0], '').trim(); // Fallback
+                }
+            }
+            
+            setActionChips(chips);
+            const finalMessages = [...updatedMessages, { role: "model", content: modelReply }];
             
             if (res.predictions && res.predictions.length > 0) {
                 setLocalPredictions(res.predictions);
@@ -683,6 +763,8 @@ const MainApplication = () => {
                         loading={loading} 
                         localPredictions={localPredictions} 
                         conversationStage={conversationStage}
+                        actionChips={actionChips}
+                        onChipClick={handleChipClick}
                     />
                 ) : ( <WelcomeScreen onNewChat={startNewChat} /> )}
             </main>
@@ -728,5 +810,6 @@ function App() {
 }
 
 export default App;
+
 
 
