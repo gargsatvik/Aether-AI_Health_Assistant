@@ -24,8 +24,8 @@ getFirestore(app);
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
 const api = {
     getPrediction: async (symptoms) => (await axios.post(`${API_BASE}/predict`, { symptoms })).data || [],
-    chatWithAI: async (history, predictions, location) => {
-        return (await axios.post(`${API_BASE}/chat`, { history, local_predictions: predictions, location })).data;
+    chatWithAI: async (history, predictions, location, stage) => {
+        return (await axios.post(`${API_BASE}/chat`, { history, local_predictions: predictions, location, stage })).data;
     },
     getChats: async (userId) => (await axios.post(`${API_BASE}/get_chats`, { user_id: userId })).data || [],
     saveChat: async (userId, chatData) => await axios.post(`${API_BASE}/save_chat`, { userId, chatData }),
@@ -632,7 +632,7 @@ const MainApplication = () => {
                 stageForBackend = 'process_symptoms';
             }
 
-            const res = await api.chatWithAI(history, localPredictions, stageForBackend); 
+            const res = await api.chatWithAI(history, localPredictions, userLocation, stageForBackend); 
             const finalMessages = [...updatedMessages, { role: "model", content: res.reply }];
             
             if (res.predictions && res.predictions.length > 0) {
@@ -728,4 +728,5 @@ function App() {
 }
 
 export default App;
+
 
