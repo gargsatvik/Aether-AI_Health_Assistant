@@ -7,8 +7,8 @@ import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from "firebase/
 import { getFirestore } from "firebase/firestore";
 
 // --- Asset Imports ---
-import logoAether from './assets/logo_aether.png';
-import aetherText from './assets/aether_text.png';
+import logoAether from 'assets/aether text.png';
+import aetherText from 'assets/aether_text.png';
 
 
 // --- Firebase & API Layer (Defined before Components) ---
