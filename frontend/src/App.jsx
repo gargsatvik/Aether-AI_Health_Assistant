@@ -181,11 +181,11 @@ const useMediaQuery = (query) => {
 };
 
 // --- SVG & Image Icons ---
-const AetherLogo = () => <img src="/assets/logo_aether.png" alt="Aether Logo" style={{width:'32px', height:'32px'}} />;
+const AetherLogo = () => <img src="/assets/logo_aether1.png" alt="Aether Logo" style={{width:'auto', height:'36px'}} />;
 const YourLogo = () => (
     <div style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
-        <img src="/assets/logo_aether.png" alt="Aether Logo" style={{height:'28px', width: '28px'}} />
-        <img src="/assets/aether_text.png" alt="Aether" style={{height:'20px', width: 'auto'}} />
+        <img src="/assets/logo_aether1.png" alt="Aether Logo" style={{height:'auto', width: '36px'}} />
+        <img src="/assets/aether_text1.png" alt="Aether" style={{height:'24px', width: 'auto'}} />
     </div>
 );
 const SendIcon = () => <svg style={{width:'20px',height:'20px'}} viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" /></svg>;
