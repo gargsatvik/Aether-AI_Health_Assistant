@@ -6,11 +6,6 @@ import { BrowserRouter, Routes, Route, Link, useLocation } from "react-router-do
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
-// --- Asset Imports ---
-import logoAether from 'assets/aether text.png';
-import aetherText from 'assets/aether_text.png';
-
-
 // --- Firebase & API Layer (Defined before Components) ---
 const firebaseConfig = {
     apiKey: import.meta.env.VITE_API_KEY,
@@ -186,11 +181,11 @@ const useMediaQuery = (query) => {
 };
 
 // --- SVG & Image Icons ---
-const AetherLogo = () => <img src={logoAether} alt="Aether Logo" style={{width:'32px', height:'32px'}} />;
+const AetherLogo = () => <img src="/assets/logo_aether.png" alt="Aether Logo" style={{width:'32px', height:'32px'}} />;
 const YourLogo = () => (
     <div style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
-        <img src={logoAether} alt="Aether Logo" style={{height:'28px', width: '28px'}} />
-        <img src={aetherText} alt="Aether" style={{height:'20px', width: 'auto'}} />
+        <img src="/assets/logo_aether.png" alt="Aether Logo" style={{height:'28px', width: '28px'}} />
+        <img src="/assets/aether_text.png" alt="Aether" style={{height:'20px', width: 'auto'}} />
     </div>
 );
 const SendIcon = () => <svg style={{width:'20px',height:'20px'}} viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" /></svg>;
@@ -323,10 +318,12 @@ const NeuralNetworkAnimation = () => {
     return <canvas ref={canvasRef} style={styles.backgroundCanvas} />;
 };
 
+// --- New Component to handle body styles based on route ---
 const PageStyler = () => {
     const location = useLocation();
     useEffect(() => {
         if (location.pathname === '/privacy') {
+            // Apply styles for a scrollable page
             Object.assign(document.body.style, {
                 margin: 0,
                 fontFamily: styles.fontFamily,
@@ -336,14 +333,16 @@ const PageStyler = () => {
                 overflowY: 'auto'
             });
         } else {
+            // Apply original, non-scrollable styles for the main app
             Object.assign(document.body.style, styles.body);
         }
-    }, [location.pathname]);
+    }, [location.pathname]); // Re-run when the path changes
 
-    return null;
+    return null; // This component does not render anything
 };
 
 const PrivacyPolicyPage = () => (
+    // The root div no longer needs complex style overrides
     <div>
         <header style={{
             ...styles.landingHeader, 
@@ -380,7 +379,7 @@ const PrivacyPolicyPage = () => (
             maxWidth: '800px', 
             margin: '0 auto', 
             padding: '16px 24px 80px 24px',
-            overflow: 'visible'
+            overflow: 'visible' // Ensure main content doesn't hide anything
         }}>
             <h1 style={{...styles.landingTitle, fontSize: 'clamp(2rem, 5vw, 2.75rem)', margin: '2rem 0 1rem' }}>Privacy Policy for Aether</h1>
             <p style={{...styles.landingSubtitle, maxWidth: '100%', margin: '0 0 2.5rem 0', color: styles.colors.secondaryText}}>
@@ -491,7 +490,10 @@ const ChatHistorySidebar = ({ chats, onSelectChat, activeChatId, onNewChat, user
         <>
             <div style={sidebarStyle}>
                 <div style={styles.sidebarHeader}>
-                    <YourLogo />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <AetherLogoSVG />
+                        <h1 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: 'white' }}>Aether</h1>
+                    </div>
                     {!isDesktop && <button onClick={() => setIsSidebarOpen(false)} style={{background:'none',border:'none',color:'#a3a3a3',cursor:'pointer'}}><XIcon /></button>}
                 </div>
                 <div style={{padding:'0 1.5rem'}}><button onClick={onNewChat} style={{...styles.sidebarNewChatBtn, width:'100%', margin:0}}><PlusIcon /> New Chat</button></div>
@@ -522,10 +524,14 @@ const ChatHistorySidebar = ({ chats, onSelectChat, activeChatId, onNewChat, user
 const ChatMessage = ({ message }) => {
     const isUser = message.role === "user";
 
+    // A simple parser to convert markdown-like bold to JSX
     const renderContent = (content) => {
+        // Return a single element to avoid key warnings for non-array returns
         if (!content.includes('**')) {
             return content;
         }
+
+        // Split by the bold delimiter and process the parts
         const parts = content.split(/(\*\*.*?\*\*)/g).filter(Boolean);
         return (
             <>
@@ -541,7 +547,7 @@ const ChatMessage = ({ message }) => {
 
     return (
         <div style={{ display:'flex', margin:'1rem 0', gap:'12px', justifyContent: isUser ? "flex-end" : "flex-start" }}>
-            {!isUser && <div style={{width:'32px',height:'32px',backgroundColor:'#1E1E1E',borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><AetherLogo /></div>}
+            {!isUser && <div style={{width:'32px',height:'32px',backgroundColor:'#1E1E1E',borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><AetherLogoSVG /></div>}
             <div style={{...styles.messageBubble, ...(isUser ? styles.userMessage : styles.modelMessage)}}>
                 <p style={{ margin: 0 }}>{renderContent(message.content)}</p>
             </div>
@@ -550,7 +556,7 @@ const ChatMessage = ({ message }) => {
 };
 const WelcomeScreen = ({ onNewChat }) => (
     <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',height:'100%',textAlign:'center',padding:'1rem', zIndex: 1}}>
-        <AetherLogo />
+        <AetherLogoSVG />
         <h2 style={{fontSize:'24px',fontWeight:400,color:'#a3a3a3',marginTop:'1rem',marginBottom:'1.5rem'}}>Welcome to Aether</h2>
         <button onClick={onNewChat} style={styles.sidebarNewChatBtn}>Start New Chat</button>
     </div>
@@ -659,7 +665,6 @@ const MainApplication = () => {
         setUserInput(""); 
         setIsSidebarOpen(false);
         setConversationStage('awaiting_name');
-        setActionChips([]);
     };
 
     const handleSelectChat = (chat) => {
@@ -668,7 +673,6 @@ const MainApplication = () => {
         setLocalPredictions(chat.localPredictions || []); 
         setConversationStage('chatting');
         setIsSidebarOpen(false);
-        setActionChips([]);
     };
 
     const handleChipClick = (chipText) => {
