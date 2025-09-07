@@ -23,9 +23,8 @@ getFirestore(app);
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
 const api = {
-    getPrediction: async (symptoms) => (await axios.post(`${API_BASE}/predict`, { symptoms })).data || [],
-    chatWithAI: async (history, predictions, location, stage) => {
-        return (await axios.post(`${API_BASE}/chat`, { history, local_predictions: predictions, location, stage })).data;
+    chatWithAI: async (history, location, stage) => {
+        return (await axios.post(`${API_BASE}/chat`, { history, location, stage })).data;
     },
     getChats: async (userId) => (await axios.post(`${API_BASE}/get_chats`, { user_id: userId })).data || [],
     saveChat: async (userId, chatData) => await axios.post(`${API_BASE}/save_chat`, { userId, chatData }),
@@ -181,11 +180,11 @@ const useMediaQuery = (query) => {
 };
 
 // --- SVG & Image Icons ---
-const AetherLogo = () => <img src="/assets/logo_aether1.png" alt="Aether Logo" style={{width:'auto', height:'36px'}} />;
+const AetherLogo = () => <img src="/assets/logo_aether1.png" alt="Aether Logo" style={{width:'auto', height:'50px'}} />;
 const YourLogo = () => (
     <div style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
-        <img src="/assets/logo_aether1.png" alt="Aether Logo" style={{height:'auto', width: '36px'}} />
-        <img src="/assets/aether_text1.png" alt="Aether" style={{height:'24px', width: 'auto'}} />
+        <img src="/assets/logo_aether1.png" alt="Aether Logo" style={{height:'50px', width: 'auto'}} />
+        <img src="/assets/aether_text1.png" alt="Aether" style={{height:'36px', width: 'auto'}} />
     </div>
 );
 const SendIcon = () => <svg style={{width:'20px',height:'20px'}} viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" /></svg>;
@@ -318,12 +317,10 @@ const NeuralNetworkAnimation = () => {
     return <canvas ref={canvasRef} style={styles.backgroundCanvas} />;
 };
 
-// --- New Component to handle body styles based on route ---
 const PageStyler = () => {
     const location = useLocation();
     useEffect(() => {
         if (location.pathname === '/privacy') {
-            // Apply styles for a scrollable page
             Object.assign(document.body.style, {
                 margin: 0,
                 fontFamily: styles.fontFamily,
@@ -333,16 +330,14 @@ const PageStyler = () => {
                 overflowY: 'auto'
             });
         } else {
-            // Apply original, non-scrollable styles for the main app
             Object.assign(document.body.style, styles.body);
         }
-    }, [location.pathname]); // Re-run when the path changes
+    }, [location.pathname]);
 
-    return null; // This component does not render anything
+    return null;
 };
 
 const PrivacyPolicyPage = () => (
-    // The root div no longer needs complex style overrides
     <div>
         <header style={{
             ...styles.landingHeader, 
@@ -379,7 +374,7 @@ const PrivacyPolicyPage = () => (
             maxWidth: '800px', 
             margin: '0 auto', 
             padding: '16px 24px 80px 24px',
-            overflow: 'visible' // Ensure main content doesn't hide anything
+            overflow: 'visible'
         }}>
             <h1 style={{...styles.landingTitle, fontSize: 'clamp(2rem, 5vw, 2.75rem)', margin: '2rem 0 1rem' }}>Privacy Policy for Aether</h1>
             <p style={{...styles.landingSubtitle, maxWidth: '100%', margin: '0 0 2.5rem 0', color: styles.colors.secondaryText}}>
@@ -490,10 +485,7 @@ const ChatHistorySidebar = ({ chats, onSelectChat, activeChatId, onNewChat, user
         <>
             <div style={sidebarStyle}>
                 <div style={styles.sidebarHeader}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <AetherLogoSVG />
-                        <h1 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: 'white' }}>Aether</h1>
-                    </div>
+                    <YourLogo />
                     {!isDesktop && <button onClick={() => setIsSidebarOpen(false)} style={{background:'none',border:'none',color:'#a3a3a3',cursor:'pointer'}}><XIcon /></button>}
                 </div>
                 <div style={{padding:'0 1.5rem'}}><button onClick={onNewChat} style={{...styles.sidebarNewChatBtn, width:'100%', margin:0}}><PlusIcon /> New Chat</button></div>
@@ -524,14 +516,10 @@ const ChatHistorySidebar = ({ chats, onSelectChat, activeChatId, onNewChat, user
 const ChatMessage = ({ message }) => {
     const isUser = message.role === "user";
 
-    // A simple parser to convert markdown-like bold to JSX
     const renderContent = (content) => {
-        // Return a single element to avoid key warnings for non-array returns
         if (!content.includes('**')) {
             return content;
         }
-
-        // Split by the bold delimiter and process the parts
         const parts = content.split(/(\*\*.*?\*\*)/g).filter(Boolean);
         return (
             <>
@@ -547,7 +535,7 @@ const ChatMessage = ({ message }) => {
 
     return (
         <div style={{ display:'flex', margin:'1rem 0', gap:'12px', justifyContent: isUser ? "flex-end" : "flex-start" }}>
-            {!isUser && <div style={{width:'32px',height:'32px',backgroundColor:'#1E1E1E',borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><AetherLogoSVG /></div>}
+            {!isUser && <div style={{width:'32px',height:'32px',backgroundColor:'#1E1E1E',borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><AetherLogo /></div>}
             <div style={{...styles.messageBubble, ...(isUser ? styles.userMessage : styles.modelMessage)}}>
                 <p style={{ margin: 0 }}>{renderContent(message.content)}</p>
             </div>
@@ -556,7 +544,7 @@ const ChatMessage = ({ message }) => {
 };
 const WelcomeScreen = ({ onNewChat }) => (
     <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',height:'100%',textAlign:'center',padding:'1rem', zIndex: 1}}>
-        <AetherLogoSVG />
+        <AetherLogo />
         <h2 style={{fontSize:'24px',fontWeight:400,color:'#a3a3a3',marginTop:'1rem',marginBottom:'1.5rem'}}>Welcome to Aether</h2>
         <button onClick={onNewChat} style={styles.sidebarNewChatBtn}>Start New Chat</button>
     </div>
@@ -665,6 +653,7 @@ const MainApplication = () => {
         setUserInput(""); 
         setIsSidebarOpen(false);
         setConversationStage('awaiting_name');
+        setActionChips([]);
     };
 
     const handleSelectChat = (chat) => {
@@ -673,6 +662,7 @@ const MainApplication = () => {
         setLocalPredictions(chat.localPredictions || []); 
         setConversationStage('chatting');
         setIsSidebarOpen(false);
+        setActionChips([]);
     };
 
     const handleChipClick = (chipText) => {
@@ -695,53 +685,40 @@ const MainApplication = () => {
             const history = updatedMessages.map(m => ({ role: m.role, parts: [m.content] }));
             
             let stageForBackend = conversationStage;
-            if (conversationStage === 'awaiting_symptoms') {
-                stageForBackend = 'process_symptoms';
-            }
-
-            const res = await api.chatWithAI(history, localPredictions, userLocation, stageForBackend);
+            
+            const res = await api.chatWithAI(history, userLocation, stageForBackend);
             
             let modelReply = res.reply;
             let chips = [];
+            let summary = null;
 
-            // More robust regex to find and parse [CHIPS: ...]
             const chipRegex = /\[CHIPS:\s*(\[.*?\])\]/s;
             const chipMatch = modelReply.match(chipRegex);
             if (chipMatch && chipMatch[1]) {
                 try {
-                    // The captured group (chipMatch[1]) is the JSON array string.
-                    // Sanitize it to handle single quotes from the model if they appear.
                     const chipString = chipMatch[1].replace(/'/g, '"');
                     chips = JSON.parse(chipString);
                 } catch (error) {
                     console.error("Failed to parse chips JSON:", chipMatch[1], error);
-                    // If parsing fails, chips will remain an empty array.
                 }
-                // Always remove the CHIPS tag from the displayed message.
                 modelReply = modelReply.replace(chipMatch[0], '').trim();
             }
 
-            // More robust regex for [SUMMARY: ...]
             const summaryRegex = /\[SUMMARY:\s*(\{.*?\})\]/s;
             const summaryMatch = modelReply.match(summaryRegex);
             if (summaryMatch && summaryMatch[1]) {
                 try {
-                     // Sanitize string to handle single quotes.
-                    const summaryString = summaryMatch[1].replace(/'/g, '"');
-                    const summary = JSON.parse(summaryString);
-                    const trailingText = modelReply.replace(summaryMatch[0], '').trim();
-                    
+                    const summaryString = summaryMatch[1].replace(/\\n/g, ' ').replace(/\s+/g, ' ');
+                    summary = JSON.parse(summaryString);
                     modelReply = `**Summary:**\n${summary.recap}\n\n` +
                                  `**Possible Causes:**\n${summary.possibilities}\n\n` +
                                  `**Home Care Advice:**\n${summary.homeCare.map(item => `• ${item}`).join('\n')}\n\n` +
                                  `**Recommendation:**\n${summary.recommendation}\n\n` +
-                                 trailingText;
-
+                                 `${summary.conclusion}`;
                 } catch (error) {
                     console.error("Failed to parse summary JSON:", summaryMatch[1], error);
+                    modelReply = "I've completed my assessment, but there was an issue formatting the summary. Please review the chat for my recommendations."
                 }
-                 // Always remove the SUMMARY tag from the displayed message.
-                modelReply = modelReply.replace(summaryMatch[0], '').trim();
             }
             
             setActionChips(chips);
@@ -756,7 +733,7 @@ const MainApplication = () => {
             if (conversationStage === 'awaiting_name') setConversationStage('awaiting_age');
             else if (conversationStage === 'awaiting_age') setConversationStage('awaiting_sex');
             else if (conversationStage === 'awaiting_sex') setConversationStage('awaiting_symptoms');
-            else if (stageForBackend === 'process_symptoms') setConversationStage('chatting');
+            else if (summary) setConversationStage('chatting');
             
             const chatToSave = {
                 id: activeChatId, messages: finalMessages, 
@@ -785,7 +762,7 @@ const MainApplication = () => {
             <ChatHistorySidebar user={user} chats={chats} onSelectChat={handleSelectChat} activeChatId={activeChatId} onNewChat={startNewChat} onLogout={handleLogout} isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} userLocation={userLocation} />
             <main style={{ ...styles.mainContent, marginLeft: isDesktop ? '288px' : '0' }}>
                  <NeuralNetworkAnimation />
-                {!isDesktop && <button onClick={() => setIsSidebarOpen(true)} style={{ position:'fixed',top:'1rem',left:'1rem',zIndex:50,background:'rgba(30,41,59,0.5)',border:'none',padding:'0.5rem',borderRadius:'8px',color:'white',cursor:'pointer' }}><MenuIcon /></button>}
+                {!isDesktop && <button onClick={() => setIsSidebarOpen(true)} style={{ position:'fixed',top:'1rem',left:'1rem',zIndex:50,background:'rgba(30,41,59,0.5)',border:'none',padding:'0.5rem',borderRadius:'8px',color:'white',cursor:'pointer' }}><button onClick={() => setIsSidebarOpen(true)} style={{ position:'fixed',top:'1rem',left:'1rem',zIndex:50,background:'rgba(30,41,59,0.5)',border:'none',padding:'0.5rem',borderRadius:'8px',color:'white',cursor:'pointer' }}><MenuIcon /></button>}
                 {activeChatId ? (
                      <ChatScreen 
                         messages={messages} 
@@ -809,7 +786,6 @@ function App() {
     const [authReady, setAuthReady] = useState(false);
     
     useEffect(() => {
-        // This useEffect now ONLY handles the font/animation stylesheet and auth state.
         const styleSheet = document.createElement("style");
         styleSheet.innerText = `@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Inter:wght@600;700&display=swap'); @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`;
         document.head.appendChild(styleSheet);
@@ -825,13 +801,11 @@ function App() {
     }, []);
 
     if (!authReady) {
-        // Use the non-scrolling style for the initial blank loading screen
         return <div style={styles.body}></div>;
     }
     
     return (
         <BrowserRouter>
-            {/* This new component will manage the body styles for each route */}
             <PageStyler /> 
             <Routes>
                 <Route path="/privacy" element={<PrivacyPolicyPage />} />
