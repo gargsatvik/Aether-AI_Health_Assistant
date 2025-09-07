@@ -28,8 +28,9 @@ getFirestore(app);
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
 const api = {
-    chatWithAI: async (history, location, stage) => {
-        return (await axios.post(`${API_BASE}/chat`, { history, location, stage })).data;
+    getPrediction: async (symptoms) => (await axios.post(`${API_BASE}/predict`, { symptoms })).data || [],
+    chatWithAI: async (history, predictions, location, stage) => {
+        return (await axios.post(`${API_BASE}/chat`, { history, local_predictions: predictions, location, stage })).data;
     },
     getChats: async (userId) => (await axios.post(`${API_BASE}/get_chats`, { user_id: userId })).data || [],
     saveChat: async (userId, chatData) => await axios.post(`${API_BASE}/save_chat`, { userId, chatData }),
@@ -690,40 +691,53 @@ const MainApplication = () => {
             const history = updatedMessages.map(m => ({ role: m.role, parts: [m.content] }));
             
             let stageForBackend = conversationStage;
-            
-            const res = await api.chatWithAI(history, userLocation, stageForBackend);
+            if (conversationStage === 'awaiting_symptoms') {
+                stageForBackend = 'process_symptoms';
+            }
+
+            const res = await api.chatWithAI(history, localPredictions, userLocation, stageForBackend);
             
             let modelReply = res.reply;
             let chips = [];
-            let summary = null;
 
+            // More robust regex to find and parse [CHIPS: ...]
             const chipRegex = /\[CHIPS:\s*(\[.*?\])\]/s;
             const chipMatch = modelReply.match(chipRegex);
             if (chipMatch && chipMatch[1]) {
                 try {
+                    // The captured group (chipMatch[1]) is the JSON array string.
+                    // Sanitize it to handle single quotes from the model if they appear.
                     const chipString = chipMatch[1].replace(/'/g, '"');
                     chips = JSON.parse(chipString);
                 } catch (error) {
                     console.error("Failed to parse chips JSON:", chipMatch[1], error);
+                    // If parsing fails, chips will remain an empty array.
                 }
+                // Always remove the CHIPS tag from the displayed message.
                 modelReply = modelReply.replace(chipMatch[0], '').trim();
             }
 
+            // More robust regex for [SUMMARY: ...]
             const summaryRegex = /\[SUMMARY:\s*(\{.*?\})\]/s;
             const summaryMatch = modelReply.match(summaryRegex);
             if (summaryMatch && summaryMatch[1]) {
                 try {
-                    const summaryString = summaryMatch[1].replace(/\\n/g, ' ').replace(/\s+/g, ' ');
-                    summary = JSON.parse(summaryString);
+                     // Sanitize string to handle single quotes.
+                    const summaryString = summaryMatch[1].replace(/'/g, '"');
+                    const summary = JSON.parse(summaryString);
+                    const trailingText = modelReply.replace(summaryMatch[0], '').trim();
+                    
                     modelReply = `**Summary:**\n${summary.recap}\n\n` +
                                  `**Possible Causes:**\n${summary.possibilities}\n\n` +
                                  `**Home Care Advice:**\n${summary.homeCare.map(item => `• ${item}`).join('\n')}\n\n` +
                                  `**Recommendation:**\n${summary.recommendation}\n\n` +
-                                 `${summary.conclusion}`;
+                                 trailingText;
+
                 } catch (error) {
                     console.error("Failed to parse summary JSON:", summaryMatch[1], error);
-                    modelReply = "I've completed my assessment, but there was an issue formatting the summary. Please review the chat for my recommendations."
                 }
+                 // Always remove the SUMMARY tag from the displayed message.
+                modelReply = modelReply.replace(summaryMatch[0], '').trim();
             }
             
             setActionChips(chips);
@@ -738,7 +752,7 @@ const MainApplication = () => {
             if (conversationStage === 'awaiting_name') setConversationStage('awaiting_age');
             else if (conversationStage === 'awaiting_age') setConversationStage('awaiting_sex');
             else if (conversationStage === 'awaiting_sex') setConversationStage('awaiting_symptoms');
-            else if (summary) setConversationStage('chatting');
+            else if (stageForBackend === 'process_symptoms') setConversationStage('chatting');
             
             const chatToSave = {
                 id: activeChatId, messages: finalMessages, 
@@ -791,6 +805,7 @@ function App() {
     const [authReady, setAuthReady] = useState(false);
     
     useEffect(() => {
+        // This useEffect now ONLY handles the font/animation stylesheet and auth state.
         const styleSheet = document.createElement("style");
         styleSheet.innerText = `@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Inter:wght@600;700&display=swap'); @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`;
         document.head.appendChild(styleSheet);
@@ -806,11 +821,13 @@ function App() {
     }, []);
 
     if (!authReady) {
+        // Use the non-scrolling style for the initial blank loading screen
         return <div style={styles.body}></div>;
     }
     
     return (
         <BrowserRouter>
+            {/* This new component will manage the body styles for each route */}
             <PageStyler /> 
             <Routes>
                 <Route path="/privacy" element={<PrivacyPolicyPage />} />
