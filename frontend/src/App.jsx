@@ -181,7 +181,7 @@ const useMediaQuery = (query) => {
 };
 
 // --- SVG & Image Icons ---
-const AetherLogo = () => <img src="/assets/logo_aether1.png" alt="Aether Logo" style={{width:'auto', height:'50px'}} />;
+const AetherLogoSVG  = () => <img src="/assets/logo_aether1.png" alt="Aether Logo" style={{width:'auto', height:'50px'}} />;
 const YourLogo = () => (
     <div style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
         <img src="/assets/logo_aether1.png" alt="Aether Logo" style={{height:'auto', width: '50px'}} />
